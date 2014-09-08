@@ -9,6 +9,7 @@ final class Command
     protected $name;
     protected $sender;
     protected $params;
+    protected $text;
 
     /**
      * Create a new command object
@@ -36,6 +37,7 @@ final class Command
             $params = explode(' ', $params);
         }
         $this->params = $params;
+        $this->text = implode(' ', $params);
     }
 
     /**
@@ -87,6 +89,7 @@ final class Command
             case 'sender':
             case 'params':
             case 'message':
+            case 'text':
                 return $this->$name;
             break;
         }
@@ -104,6 +107,8 @@ final class Command
             case 'name':
             case 'sender':
             case 'params':
+            case 'message':
+            case 'text':
                 ; // Read-only
             break;
         }
@@ -131,6 +136,8 @@ final class Command
             case 'name':
             case 'sender':
             case 'params':
+            case 'message':
+            case 'text':
                 ; // Read-only
             break;
         }

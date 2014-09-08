@@ -68,6 +68,13 @@ class Client extends BaseHelper
 
         // Request whois information about ourself
         Message::whois(array_get($this->config, 'bot.nick'))->send($this->socket);
+
+        // join set channels
+        if (count(array_get($this->config, 'bot.join_channels', [])) > 0) {
+            foreach (array_get($this->config, 'bot.join_channels') as $channel) {
+                Message::join($channel)->send($this->socket);
+            }
+        }
     }
 
     /**

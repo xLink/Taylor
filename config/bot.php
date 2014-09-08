@@ -4,7 +4,7 @@ return [
     'nick'           => 'Tay[localhost]',
     'name'           => 'Taylor',
     'account'        => 'taylor',
-    'password'       => 'xxlinkk',
+    'password'       => '', // nickserv passy
     'version'        => 'V4.0',
 
     'queue_timeout'  => 1,
