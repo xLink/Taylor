@@ -56,3 +56,10 @@ function color($msg, $color = null)
 
     return $return.$msg.chr(3);
 }
+
+function strip_whitespace($msg)
+{
+    $msg = str_replace(["\n", "\r\n", "\r", "\t"], ' ', $msg);
+    $msg = trim(preg_replace('/\s+/', ' ', $msg));
+    return $msg;
+}
