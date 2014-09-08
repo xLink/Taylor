@@ -1,0 +1,16 @@
+{
+    "name": "xlink/taylor",
+    "type": "pxcms-module",
+    "description": "IRC Bot Module for PhoenixCMS.",
+    "license": "MIT",
+    "authors": [
+        { "name": "xLink", "email": "xLink@cybershade.org" }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "composer/installers" : "dev-master",
+    },
+    "repositories": [
+        { "type": "vcs", "url": "https://github.com/cysha/installers" }
+    ]
+}
