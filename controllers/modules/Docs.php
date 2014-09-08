@@ -7,11 +7,13 @@ use Cysha\Modules\Taylor\Helpers\Irc as Irc;
 $trigger = \Config::get('taylor::bot.command_trigger', '>');
 
 Command::register($trigger.'php', function (Command $command) {
-    if (!count($command->params)) {
+    if (!count($command->params) || substr($command->params[0], 0, 1) == '?') {
         return Message::privmsg($command->message->channel(), 'Usage: <function>');
     }
 
-    if (!function_exists($command->params[0])) {
+    // make sure it's only checking PHPs functions and not self defined
+    $functions = array_get(get_defined_functions(), 'internal');
+    if (!in_array($functions, $command->params[0])) {
         return Message::privmsg($command->message->channel(), color($command->params[0].' isnt a PHP Function'));
     }
 
