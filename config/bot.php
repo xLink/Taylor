@@ -1,19 +1,20 @@
 <?php
 
 return [
-    'nick'           => 'Tay[localhost]',
-    'name'           => 'Taylor',
-    'account'        => 'taylor',
-    'password'       => '', // nickserv passy
-    'version'        => 'V4.0',
+    'nick'            => 'Tay[localhost]',
+    'name'            => 'Taylor',
+    'account'         => 'taylor',
+    'password'        => '', // nickserv passy
+    'version'         => 'V4.0',
 
-    'queue_timeout'  => 1,
-    'queue_buffer'   => 255,
+    'queue_timeout'   => 1,
+    'queue_buffer'    => 255,
 
-    'admin_password' => '',
-    'god_mask'       => 'sid3260@staff.darkscience.net',
+    'admin_password'  => '',
+    'god_mask'        => 'sid3260@staff.darkscience.net',
+    'command_trigger' => '>',
 
-    'join_channels'  => [
+    'join_channels'   => [
         '#bots',
     ],
 
