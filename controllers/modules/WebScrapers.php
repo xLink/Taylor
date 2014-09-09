@@ -12,7 +12,7 @@ Command::register($trigger.'xkcd', function (Command $command) {
     $url = sprintf('http://c.xkcd.com/random/comic/');
     $crawler = with(new Goutte\Client())->request('GET', $url);
     if (($crawler instanceof Symfony\Component\DomCrawler\Crawler) === false) {
-        die('Could not query server.');
+        return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
     }
 
     $parts = [
