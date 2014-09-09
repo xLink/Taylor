@@ -3,7 +3,6 @@ require_once(app_path().'/modules/taylor/goutte.phar');
 use Cysha\Modules\Taylor\Helpers\Irc\Command as Command;
 use Cysha\Modules\Taylor\Helpers\Irc\Message as Message;
 use Cysha\Modules\Taylor\Helpers\Irc as Irc;
-use GuzzleHttp\Client;
 use Symfony\Component\DomCrawler\Crawler;
 
 $trigger = \Config::get('taylor::bot.command_trigger', '>');
@@ -58,7 +57,7 @@ Command::register($trigger.'golang', function (Command $command) {
 
     //query the url in question, and make sure we get a valid response
     $url = sprintf('http://golang.org/pkg/%s/#%s', $packageName, $methodName);
-    $response = with(new Client())->get($url);
+    $response = with(new GuzzleHttp\Client())->get($url);
     if ($response->getStatusCode() != '200') {
         return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
     }

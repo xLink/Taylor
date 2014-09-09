@@ -45,7 +45,7 @@ Message::listen('privmsg', function ($message) {
     $whitelist = [
         'md5', 'sha1', 'strlen', 'base64_decode', 'base64_encode', 'str_replace', 'number_format',
         'ucwords', 'substr', 'strrev', 'str_shuffle', 'str_split', 'explode', 'chr', 'addslashes', 'addcslashes',
-        'hex2bin', 'rand'
+        'rand', 'date', 'strtotime', 'range', 'sprintf', 'levenshtein',
     ];
 
     // make sure we have some params
