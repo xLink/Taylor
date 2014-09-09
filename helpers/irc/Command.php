@@ -10,6 +10,7 @@ final class Command
     protected $sender;
     protected $params;
     protected $text;
+    protected $time;
 
     /**
      * Create a new command object
@@ -38,6 +39,7 @@ final class Command
         }
         $this->params = $params;
         $this->text = implode(' ', $params);
+        $this->time = microtime(true);
     }
 
     /**
@@ -90,6 +92,7 @@ final class Command
             case 'params':
             case 'message':
             case 'text':
+            case 'time':
                 return $this->$name;
             break;
         }
@@ -109,6 +112,7 @@ final class Command
             case 'params':
             case 'message':
             case 'text':
+            case 'time':
                 ; // Read-only
             break;
         }
@@ -138,6 +142,7 @@ final class Command
             case 'params':
             case 'message':
             case 'text':
+            case 'time':
                 ; // Read-only
             break;
         }

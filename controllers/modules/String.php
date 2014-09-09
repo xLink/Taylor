@@ -64,9 +64,9 @@ Command::register($trigger.'hex2dec', function (Command $command) {
         'g' => hexdec(substr($color, 2, 2)),
         'b' => hexdec(substr($color, 4, 2))
     );
-    $text =  '[ '.color('Red: '.$ret['r'], 'red')
-            .' ][ '.color('Green: '.$ret['g'], 'green')
-            .' ][ '.color('Blue: '.$ret['b'], 'blue').' ]';
+    $text =  '[ '.color('Red: '.$ret['r'], 'red').' ]'.
+             '[ '.color('Green: '.$ret['g'], 'green').' ]'.
+             '[ '.color('Blue: '.$ret['b'], 'blue').' ]';
     return Message::privmsg($command->message->channel(), $text);
 });
 
