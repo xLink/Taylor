@@ -19,9 +19,11 @@ Command::register($trigger.'php', function (Command $command) {
         return Message::privmsg($command->message->channel(), color($command->params[0].' isnt a PHP Function'));
     }
 
+    // do the request
     $url = 'http://php.net/function.'.$command->params[0];
     $crawler = with(new Goutte\Client())->request('GET', $url);
 
+    // setup a list of parts to scrap from the page
     $parts = [
         'version'     => 'p.verinfo',
         'name'        => 'h1.refname',
@@ -30,11 +32,12 @@ Command::register($trigger.'php', function (Command $command) {
         'return'      => '.returnvalues p.para',
     ];
 
+    // do the scraping
     foreach ($parts as $key => $selector) {
-        $parts[$key] = rtrim(trim($crawler->filter($selector)->last()->text()));
-        $parts[$key] = strip_whitespace($parts[$key]);
+        $parts[$key] = strip_whitespace($crawler->filter($selector)->last()->text());
     }
 
+    // return the goodness :D
     $msgs[] = Message::privmsg($command->message->channel(), color(sprintf(
         '( PHP Ver: %s ) %s — %s', $parts['version'], $parts['name'], $parts['description']
     )));
@@ -50,28 +53,36 @@ Command::register($trigger.'golang', function (Command $command) {
         return Message::privmsg($command->message->channel(), 'Usage: <function>');
     }
 
-    list($packageName, $methodName) = ['fmt', 'println'];#$command->params;
+    // assign args 0 & 1 to variables
+    list($packageName, $methodName) = $command->params;
 
+    //query the url in question, and make sure we get a valid response
     $url = sprintf('http://golang.org/pkg/%s/#%s', $packageName, $methodName);
     $response = with(new Client())->get($url);
     if ($response->getStatusCode() != '200') {
-        return Message::privmsg($command->message->channel(), color('Function Not Found'));
+        return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
     }
 
+    // strtolower the response, and test to see if we have an span.alert telling us NOPE
     $crawler = new Crawler(strtolower($response->getBody(true)));
     if (($alert = $crawler->filter('span.alert')->count()) !== 0) {
         return Message::privmsg($command->message->channel(), color('Function Not Found'));
     }
 
+    // setup a list of parts to scrap from the page
     $parts = [
         'usage'     => sprintf('#%s + pre', $methodName),
         'details'   => sprintf('#%s + pre + p', $methodName),
     ];
 
+    // do the scraping
     foreach ($parts as $key => $selector) {
-        $parts[$key] = $crawler->filter($selector)->count() > 0 ? strip_whitespace($crawler->filter($selector)->first()->text()) : null;
+        $parts[$key] = $crawler->filter($selector)->count() > 0
+                        ? strip_whitespace($crawler->filter($selector)->first()->text())
+                        : null;
     }
 
+    // return the goodness :D
     $msgs[] = Message::privmsg($command->message->channel(), color($parts['usage']));
     $msgs[] = Message::privmsg($command->message->channel(), color($parts['details']));
     $msgs[] = Message::privmsg($command->message->channel(), color($url));
