@@ -42,7 +42,11 @@ Command::register($trigger.'str2hex', function (Command $command) {
 });
 
 Message::listen('privmsg', function ($message) {
-    $whitelist = ['md5', 'sha1', 'strlen', 'base64_decode', 'base64_encode', 'str_replace'];
+    $whitelist = [
+        'md5', 'sha1', 'strlen', 'base64_decode', 'base64_encode', 'str_replace', 'number_format',
+        'ucwords', 'substr', 'strrev', 'str_shuffle', 'str_split', 'explode', 'chr', 'addslashes', 'addcslashes',
+        'hex2bin', 'rand'
+    ];
 
     // make sure we have some params
     if (count($message->params) == 2) {
@@ -74,6 +78,11 @@ Message::listen('privmsg', function ($message) {
     $message = null;
     try {
         $return = call_user_func_array($command, $params);
+
+        if (is_array($return)) {
+            $return = '[\''.implode('\', \'', $return).'\']';
+        }
+
     } catch (ErrorException $e) {
         $return = false;
         $message = $e->getMessage();
