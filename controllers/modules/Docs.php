@@ -15,7 +15,7 @@ Command::register($trigger.'php', function (Command $command) {
 
     // make sure it's only checking PHPs functions and not self defined
     $functions = array_get(get_defined_functions(), 'internal');
-    if (!in_array($functions, $command->params[0])) {
+    if (!in_array($command->params[0], $functions)) {
         return Message::privmsg($command->message->channel(), color($command->params[0].' isnt a PHP Function'));
     }
 
