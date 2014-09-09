@@ -44,18 +44,22 @@ Command::register($trigger.'str2hex', function (Command $command) {
 Message::listen('privmsg', function ($message) {
     $whitelist = ['md5', 'sha1', 'strlen', 'base64_decode', 'base64_encode', 'str_replace'];
 
+    // make sure we have some params
     if (count($message->params) == 2) {
         list($channel, $params) = $message->params;
     }
 
+    // explode the params & grab the function
     $params = explode(' ', $params);
     $command = strtolower(array_shift($params));
 
+    // if we dont have a > ignore this msg
     if (substr($command, 0, 1) != '>') {
         return;
     }
     $command = substr($command, 1);
 
+    // if the function isnt in the whitelist ignore this msg
     if (!in_array($command, $whitelist)) {
         return;
     }
@@ -66,19 +70,19 @@ Message::listen('privmsg', function ($message) {
         return Message::privmsg($channel, color($command.' isnt a PHP Function'));
     }
 
-    $return = call_user_func_array($command, $params);
-    if ($return === false) {
-        return Message::privmsg($channel, color(sprintf(
-            'PHP> %s(\'%s\') // invalid',
-            $command,
-            implode('\', \'', $params)
-        )));
+    // call the function and make sure we dont get false
+    $message = null;
+    try {
+        $return = call_user_func_array($command, $params);
+    } catch (ErrorException $e) {
+        $return = false;
+        $message = $e->getMessage();
     }
 
     return Message::privmsg($channel, color(sprintf(
-        'PHP> %s(\'%s\') // %s',
+        'PHP> %s(%s) // %s',
         $command,
-        implode('\', \'', $params),
-        color($return, 'green')
+        count($params) ? '\''.implode('\', \'', $params).'\'' : null,
+        $return === false ? color($message, 'red') : color($return, 'green')
     )));
 });
