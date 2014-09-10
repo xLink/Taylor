@@ -12,6 +12,6 @@ Command::register($trigger.'ping', function (Command $command) {
 
 if (false) {
     Message::listen('*', function (Message $message) {
-        debug($message);
+        message_debug($message);
     });
 }

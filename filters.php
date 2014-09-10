@@ -1,7 +1,7 @@
 <?php
 use Cysha\Modules\Taylor\Helpers\Irc as Irc;
 
-function debug($message, $title = false)
+function message_debug($message, $title = false)
 {
     echo Irc\ANSI::color(Irc\ANSI::RED, false, '--- Called '.($title ?: 'Debug')).PHP_EOL;
     if (!$message->sender) {
