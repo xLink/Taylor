@@ -76,3 +76,68 @@ Command::register($trigger.'w', function (Command $command) {
 
     return Message::privmsg($command->message->channel(), color('['. implode(' | ', $parts) .']'));
 });
+
+/** @author infy **/
+Command::register($trigger.'fml', function (Command $command) {
+    if (!count($command->params) || substr($command->params[0], 0, 1) == '?') {
+        return Message::privmsg($command->message->channel(), 'Usage: >fml');
+    }
+
+    // Do the request.
+    $request = with(new Goutte\Client())->request('GET', 'http://www.fmylife.com/random');
+    if (($request instanceof Symfony\Component\DomCrawler\Crawler) === false) {
+        return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
+    }
+
+    $data = [
+        'body'  =>  'div.post.article > p',
+        'id'    =>  'div.left_part > a.jTip',
+        'cat'   =>  'a.liencat'
+    ];
+    foreach ($data as $k => $v) {
+        $data[$k] = $request->filter($v)->first()->text();
+    }
+
+    $msgs = [];
+    $msgs[] = Message::privmsg($command->message->channel(), sprintf('FML (%s @ %s):', $data['id'], $data['cat']));
+    $msgs[] = Message::privmsg($command->message->channel(), $data['body']);
+
+    return $msgs;
+});
+
+/** @author infy **/
+Command::register($trigger.'isup', function (Command $command) {
+    if (!count($command->params) || substr($command->params[0], 0, 1) == '?') {
+        return Message::privmsg($command->message->channel(), 'Usage: <url>');
+    }
+
+    $url = $command->params[0];
+
+    // If there is no http(s):// in front of the URI, append it.
+    if (!preg_match('#^(https?:\/\/)#i', $url)) {
+        $url = 'http://'.$url;
+    }
+
+    // Now filter var should filter properly for URIs such as bash.org or facebook.com
+    if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        return Message::privmsg($command->message->channel(), 'Invalid URI supplied.');
+    }
+
+    try {
+        $client = new Goutte\Client();
+        $guzzle = $client->getClient(); // Get the client
+        $guzzle->setDefaultOption('verify', false); // Don't verify SSL certificates.
+        $client->setClient($guzzle); // Tell Goutte to use the modified client.
+        $request = $client->request('GET', $url); // Fire off the request.
+    } catch (GuzzleHttp\Exception\RequestException $b) {
+        return Message::privmsg(
+            $command->message->channel(),
+            color($url.' appears to be down from here!', 'red')
+        );
+    }
+
+    return Message::privmsg(
+        $command->message->channel(),
+        color($url.' is online from here.', 'green')
+    );
+});

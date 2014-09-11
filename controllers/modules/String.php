@@ -67,11 +67,6 @@ Message::listen('privmsg', function ($message) {
         return;
     }
 
-    // if (>$whitelist ?) then run >php $whitelist
-    if (($test = explode(' ', $params)) !== false && count($test) == 2 && $test[1] == '?') {
-        return run_cmd($channel, '>php', substr($test[0], 1));
-    }
-
     // explode the params & grab the function
     $arg_parse = arg_parse($params);
     if ($arg_parse === false) {
@@ -88,6 +83,11 @@ Message::listen('privmsg', function ($message) {
     // if the function isnt in the whitelist ignore this msg
     if (!in_array($command, $whitelist)) {
         return;
+    }
+
+    // if (>$whitelist ?) then run >php $whitelist
+    if (($test = explode(' ', $message->params[1])) !== false && count($test) == 2 && $test[1] == '?') {
+        return run_cmd($channel, '>php', substr($test[0], 1));
     }
 
     // make sure it's only checking PHPs functions and not self defined
@@ -127,7 +127,7 @@ Message::listen('privmsg', function ($message) {
 function arg_parse($line)
 {
     // Explode by space first in order to separate the arguments from the actual command.
-    $data = explode(' ', $line, 2);
+    $data = !is_array($line) ? explode(' ', $line, 2) : $line;
     if (count($data) < 2) {
         return false;
     }
