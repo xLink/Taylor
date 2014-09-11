@@ -47,6 +47,16 @@ Message::listen('privmsg', function ($message) {
         return;
     }
 
+    // register the php functions
+    if (\Cache::get('taylor.phpfuncs', true)) {
+        $functions = Cache::get('taylor.functions', []);
+        foreach ($whitelist as $phpfunc) {
+            $functions[] = '>'.$phpfunc;
+        }
+        \Cache::forever('taylor.functions', array_unique($functions));
+        \Cache::forever('taylor.phpfuncs', false);
+    }
+
     // make sure we have some params
     if (count($message->params) == 2) {
         list($channel, $params) = $message->params;

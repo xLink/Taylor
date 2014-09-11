@@ -2,6 +2,7 @@
 
 use Config;
 use Event;
+use Cache;
 
 final class Command
 {
@@ -62,6 +63,11 @@ final class Command
     public static function register($name, $closure)
     {
         Event::listen('taylor::command: '.strtolower($name), $closure);
+
+        // register the command into the cache
+        $functions = Cache::get('taylor.functions', []);
+        $functions[] = $name;
+        Cache::forever('taylor.functions', array_unique($functions));
     }
 
     /**
