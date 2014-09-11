@@ -30,6 +30,10 @@ Command::register($trigger.'xkcd', function (Command $command) {
     return $msgs;
 });
 
+Command::register($trigger.'weather', function (Command $command) {
+    return run_cmd($command->message->channel(), '>w', $command->params);
+});
+
 Command::register($trigger.'w', function (Command $command) {
     $text = $command->text;
 

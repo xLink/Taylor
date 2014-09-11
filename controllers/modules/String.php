@@ -45,7 +45,8 @@ Message::listen('privmsg', function ($message) {
     $whitelist = [
         'md5', 'sha1', 'strlen', 'base64_decode', 'base64_encode', 'str_replace', 'number_format',
         'ucwords', 'substr', 'strrev', 'str_shuffle', 'str_split', 'explode', 'chr', 'addslashes', 'addcslashes',
-        'rand', 'date', 'strtotime', 'range', 'sprintf', 'levenshtein',
+        'rand', 'date', 'strtotime', 'range', 'sprintf', 'levenshtein', 'str::upper', 'str::random', 'str::slug',
+        'str::snake', 'str::studly', 'str::length', 'str::ascii', 'str::singular', 'str::plural'
     ];
 
     // make sure we have some params
@@ -53,9 +54,22 @@ Message::listen('privmsg', function ($message) {
         list($channel, $params) = $message->params;
     }
 
+    // if we dont have a #channel ignore the msg
+    if (substr($channel, 0, 1) != '#') {
+        return;
+    }
+
+    // if (>$whitelist ?) then run >php $whitelist
+    if (($test = explode(' ', $params)) !== false && count($test) == 2 && $test[1] == '?') {
+        return run_cmd($channel, '>php', substr($test[0], 1));
+    }
+
     // explode the params & grab the function
-    $params = explode(' ', $params);
-    $command = strtolower(array_shift($params));
+    $arg_parse = arg_parse($params);
+    if ($arg_parse === false) {
+        return;
+    }
+    list($command, $params) = $arg_parse;
 
     // if we dont have a > ignore this msg
     if (substr($command, 0, 1) != '>') {
@@ -69,14 +83,15 @@ Message::listen('privmsg', function ($message) {
     }
 
     // make sure it's only checking PHPs functions and not self defined
-    $functions = array_get(get_defined_functions(), 'internal');
-    if (!in_array($command, $functions)) {
-        return Message::privmsg($channel, color($command.' isnt a PHP Function'));
-    }
+    //$functions = array_get(get_defined_functions(), 'internal');
+    //if (!in_array($command, $functions)) {
+    //    return Message::privmsg($channel, color($command.' isnt a PHP Function'));
+    //}
 
     // call the function and make sure we dont get false
     $message = null;
     try {
+        $command = strpos($command, '::') ? ucwords($command) : $command;
         $return = call_user_func_array($command, $params);
 
         if (is_array($return)) {
@@ -95,3 +110,34 @@ Message::listen('privmsg', function ($message) {
         $return === false ? color($message, 'red') : color($return, 'green')
     )));
 });
+
+/**
+ * Does a custom argument parsing for the php function set above
+ *
+ * @return array
+ */
+function arg_parse($line)
+{
+    // Explode by space first in order to separate the arguments from the actual command.
+    $data = explode(' ', $line, 2);
+    if (count($data) < 2) {
+        return false;
+    }
+
+    $command = null;
+    $args = [];
+    $matches = [];
+    list($command, $args) = $data;
+
+    // try grabbing all arguments
+    preg_match_all('/"(.*?)"|\'(.*?)\'/s', $args, $matches);
+
+    // if we get nothing, roll with a nice explode
+    if (empty($matches[0])) {
+        $matches = explode(' ', $args);
+    } else {
+        $matches = array_get($matches, (!empty($matches[1][0]) ? '1' : '2'));
+    }
+
+    return [$command, $matches];
+}

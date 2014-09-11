@@ -63,3 +63,13 @@ function strip_whitespace($msg)
     $msg = trim(preg_replace('/\s+/', ' ', $msg));
     return $msg;
 }
+
+function run_cmd($channel, $command, $params = [])
+{
+    if (is_array($params)) {
+        $params = implode(' ', $params);
+    }
+
+    $callFunc = Irc\Message::parse(sprintf(': PRIVMSG %s :%s %s', $channel, $command, $params));
+    return Irc\Command::make($callFunc)->run();
+}
