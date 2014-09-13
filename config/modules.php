@@ -7,4 +7,5 @@ return [
     $path.'/String.php',
     $path.'/Docs.php',
     $path.'/WebScrapers.php',
+    $path.'/UrlDetection.php',
 ];

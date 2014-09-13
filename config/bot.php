@@ -17,6 +17,7 @@ return [
     'join_channels'   => [
         '#bots',
         '#cybershade',
+        '#darkscience',
     ],
 
     'log_file'       => storage_path().'/taylor.log',
