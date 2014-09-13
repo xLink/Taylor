@@ -141,3 +141,87 @@ Command::register($trigger.'isup', function (Command $command) {
         color($url.' is online from here.', 'green')
     );
 });
+
+/** @author infy **/
+Command::register($trigger.'curr', function (Command $command) {
+    if (count($command->params) != 3 || substr($command->params[0], 0, 1) == '?') { // Needs 3 parameters.
+        return Message::privmsg($command->message->channel(), 'Usage: <value> <currency_from> <currency_to>, e.g. 1 USD EUR');
+    }
+
+    $params = [
+        'q'     => $command->params[0],
+        'from'  => $command->params[1],
+        'to'    => $command->params[2],
+    ];
+    // grab the api
+    $url = sprintf('http://rate-exchange.appspot.com/currency?%s', http_build_query($params));
+
+    // make sure we got something
+    $request = with(new GuzzleHttp\Client())->get($url);
+    if ($request->getStatusCode() != '200') {
+        return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
+    }
+
+    // decode the json
+    $data = json_decode($request->getBody(true), true);
+    if (!count($data)) {
+        return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
+    }
+
+    if (isset($data['err'])) {
+        return Message::privmsg($command->message->channel(), color('Error: Could not process input. Usage: <value> <currency_from> <currency_to>'));
+    }
+
+    // and output
+    return Message::privmsg($command->message->channel(), sprintf('%.2f %s = %.2f %s', $params['q'], $params['from'], $data['v'], strtoupper($data['to'])));
+});
+
+Command::register($trigger.'calc', function (Command $command) {
+    if (!count($command->params) || substr($command->params[0], 0, 1) == '?') {
+        return Message::privmsg($command->message->channel(), 'Usage: <calculation query>');
+    }
+
+    $url = 'http://api.wolframalpha.com/v2/query?' . http_build_query([
+        'input' =>  $command->text,
+        'appid' =>  \Config::get('taylor::api.wolframalpha')
+    ]);
+
+    // grab the request
+    $request = with(new Goutte\Client())->request('GET', $url);
+    if (($request instanceof Symfony\Component\DomCrawler\Crawler) === false) {
+        return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
+    }
+
+    // setup some sane defaults to check for
+    $return = [];
+    $results = [
+        '0' => $request->filterXPath('//pod[@id="Result"]/subpod'),
+        '1' => $request->filterXPath('//pod/subpod'),
+    ];
+
+    foreach ($results as $key => $result) {
+        // if we get a InvalidArgumentException, this one failed, continue over it
+        try {
+            $text = $result->text();
+        } catch (InvalidArgumentException $e) {
+            continue;
+        }
+
+        // process it and pass results back to $return
+        $text = strip_whitespace($text);
+        if (strpos("\n", $text) !== false) {
+            $return[] = Message::privmsg($command->message->channel(), color($text));
+        } else {
+            $lines = explode("\n", $text);
+            foreach ($lines as $text) {
+                $return[] = Message::privmsg($command->message->channel(), color($text));
+            }
+        }
+    }
+
+    if (!count($return)) {
+        return Message::privmsg($command->message->channel(), 'Could not get result. Please try again.');
+    } else {
+        return $return[0];
+    }
+});

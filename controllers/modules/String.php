@@ -6,11 +6,8 @@ use Cysha\Modules\Taylor\Helpers\Irc as Irc;
 $trigger = \Config::get('taylor::bot.command_trigger', '>');
 
 Command::register($trigger.'hex2dec', function (Command $command) {
-    if (empty($command->params[0]) || substr($command->params[0], 0, 1) == '?') {
+    if (empty($command->params) || substr($command->params[0], 0, 1) == '?') {
         return Message::privmsg($command->message->channel(), 'Usage: <hex>');
-    }
-    if (empty($command->text)) {
-        return Message::privmsg($command->message->channel(), 'You need give me something to turn into RGB.');
     }
 
     $color = str_replace('#', '', $command->params[0]);
@@ -21,16 +18,14 @@ Command::register($trigger.'hex2dec', function (Command $command) {
     );
     $text =  '[ '.color('Red: '.$ret['r'], 'red').' ]'.
              '[ '.color('Green: '.$ret['g'], 'green').' ]'.
-             '[ '.color('Blue: '.$ret['b'], 'blue').' ]';
+             '[ '.color('Blue: '.$ret['b'], 'blue').' ]'.
+             ' - http://placehold.it/100x100/'.$color.'/&text=%20&.gif';
     return Message::privmsg($command->message->channel(), $text);
 });
 
 Command::register($trigger.'str2hex', function (Command $command) {
-    if (empty($command->params[0]) || substr($command->params[0], 0, 1) == '?') {
+    if (empty($command->params) || substr($command->params[0], 0, 1) == '?') {
         return Message::privmsg($command->message->channel(), 'Usage: <hex>');
-    }
-    if (empty($command->text)) {
-        return Message::privmsg($command->message->channel(), 'You need to give me something to hex.');
     }
 
     $split = str_split($command->text);

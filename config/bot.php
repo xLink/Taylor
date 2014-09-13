@@ -4,7 +4,7 @@ return [
     'nick'            => 'Tay[localhost]',
     'name'            => 'Taylor',
     'account'         => 'taylor',
-    'password'        => '', // nickserv passy
+    'password'        => false, // nickserv passy
     'version'         => 'V4.0',
 
     'queue_timeout'   => 1,
@@ -16,6 +16,7 @@ return [
 
     'join_channels'   => [
         '#bots',
+        '#cybershade',
     ],
 
     'log_file'       => storage_path().'/taylor.log',
