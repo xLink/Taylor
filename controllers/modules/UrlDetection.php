@@ -24,12 +24,94 @@ Message::listen('privmsg', function ($message) {
         Event::fire('taylor::privmsg: urlDetection', array($url, &$msgSet));
 
         if (count($msgSet)) {
+            var_dump($msgSet);
             $msgs[] = Message::privmsg($message->params[0], color($msgSet['title']));
         }
     }
 
     return $msgs;
 });
+
+/** @author infyhr **/
+// detect images & resolutions
+Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_ENCODING, '');
+    curl_setopt($ch, CURLOPT_USERAGENT, 'Taylor/v4.0');
+    curl_setopt($ch, CURLOPT_FAILONERROR, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 1);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 1);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+
+    $extension = explode('.', $url);
+    if ($extension) {
+        $extension = end($extension);
+    } else {
+        return;
+    }
+
+    switch(strtolower($extension)) {
+        case '.png':
+            curl_setopt($ch, CURLOPT_RANGE, '0-24'); // 24B = 192b = 0.024kB
+            break;
+        case '.gif':
+            curl_setopt($ch, CURLOPT_RANGE, '0-10'); // 10B = 80b = 0.01kB
+            break;
+        default:
+            curl_setopt($ch, CURLOPT_RANGE, '0-32768'); // 32 kB
+            break;
+    }
+
+
+    $data = curl_exec($ch);
+    if (!$data) {
+        return;
+    }
+
+    $content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+    curl_close($ch);
+
+    $return = null;
+    switch($content_type) {
+        case 'image/png':
+            $res = getPNGImageXY($data);
+            if ($res) {
+                $return .= sprintf('Content-Type: image/png, Resolution: %dx%d', $res[0], $res[1]);
+            }
+            break;
+
+        case 'image/gif':
+            $res = getGIFImageXY($data);
+            if ($res) {
+                $return .= sprintf('Content-Type: image/gif, Resolution: %dx%d', $res[0], $res[1]);
+            }
+            break;
+
+        default:
+            $img = @imagecreatefromstring($data);
+            if ($img) {
+                $res = [imagesx($img), imagesy($img)];
+                if ($res) {
+                    $return .= sprintf('Content-Type: %s, Resolution: %dx%d', $content_type, $res[0], $res[1]);
+                }
+            }
+            break;
+    }
+
+    if (is_null($return)) {
+        return;
+    }
+
+    $msgSet = [
+        'mode'   => 'img detection',
+        'title'  => $return,
+    ];
+    return false;
+}, 5);
+
 
 // detect youtube links
 Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
@@ -208,6 +290,10 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
         return;
     }
 
+    if ($title == '404 Not Found') {
+        return;
+    }
+
     if (!empty($title)) {
         $msgSet = [
             'mode'  => 'url',
@@ -249,6 +335,49 @@ function secs_to_h($secs)
     }
 
     return substr($s, 0, -2);
+}
+
+
+function getPNGImageXY($data)
+{
+    //The identity for a PNG is 8Bytes (64bits)long
+    $ident = unpack('Nupper/Nlower', $data);
+    //Make sure we get PNG
+    if ($ident['upper'] !== 0x89504E47 || $ident['lower'] !== 0x0D0A1A0A) {
+        return false;
+    }
+
+    //Get rid of the first 8 bytes that we processed
+    $data = substr($data, 8);
+    //Grab the first chunk tag, should be IHDR
+    $chunk = unpack('Nlength/Ntype', $data);
+    //IHDR must come first, if not we return false
+    if ($chunk['type'] === 0x49484452) {
+        //Get rid of the 8 bytes we just processed
+        $data = substr($data, 8);
+        //Grab our x and y
+        $info = unpack('NX/NY', $data);
+        //Return in common format
+        return array($info['X'], $info['Y']);
+    } else {
+        return false;
+    }
+}
+
+function getGIFImageXY($data)
+{
+    // The identity for a GIF is 6bytes (48Bits)long
+    $ident = unpack('nupper/nmiddle/nlower', $data);
+    // Make sure we get GIF 87a or 89a
+    if ($ident['upper'] !== 0x4749 || $ident['middle'] !== 0x4638 || ($ident['lower'] !== 0x3761 && $ident['lower'] !== 0x3961)) {
+        return false;
+    }
+    // Get rid of the first 6 bytes that we processed
+    $data = substr($data, 6);
+    // Grab our x and y, GIF is little endian for width and length
+    $info = unpack('vX/vY', $data);
+    // Return in common format
+    return array($info['X'], $info['Y']);
 }
 
 
