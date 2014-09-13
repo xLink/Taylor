@@ -5,6 +5,7 @@ use Cysha\Modules\Taylor\Helpers\Irc\Message as Message;
 use Cysha\Modules\Taylor\Helpers\Irc as Irc;
 use Config;
 use Event;
+use Cache;
 
 class Client extends BaseHelper
 {
@@ -43,6 +44,9 @@ class Client extends BaseHelper
         $this->main();
 
         $this->socket = null; // Close socket
+
+        Cache::forget('taylor.functions');
+        Cache::forget('taylor.phpfuncs');
     }
 
     protected function identifyMe()
