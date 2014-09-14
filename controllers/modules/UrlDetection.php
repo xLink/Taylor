@@ -107,10 +107,129 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
 
     $msgSet = [
         'mode'   => 'img detection',
-        'title'  => $return,
+        'title'  => 'Image Found: '.$return,
     ];
     return false;
 }, 5);
+
+
+// detect imgur links
+Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
+    if (!strpos($url, 'imgur.com')) {
+        return;
+    }
+
+    // setup a new client
+    $client = new GuzzleHttp\Client([
+        'base_url' => ['https://api.imgur.com/{version}/', ['version' => '3']],
+        'defaults' => [
+            'headers' => [
+                'Authorization' => 'Client-ID '.Config::get('taylor::api.imgur.client_id', null),
+            ]
+        ]
+    ]);
+
+    // figure out which api endpoint to hit
+    $apiUrl = null;
+    $request = false;
+    $type = null;
+    switch (true) {
+        case strpos($url, '/a/'):
+            $type = 'gallery';
+            $apiUrl = sprintf('gallery/album/%s', last(explode('/', $url)));
+        break;
+
+        case strpos($url, '/gallery/'):
+            $type = 'gallery';
+            echo \Debug::dump($url, 'gallery/album/%s');
+            try {
+                $request = $client->get(sprintf('gallery/album/%s', last(explode('/', $url))));
+            } catch (\GuzzleHttp\Exception\ClientException $e) {
+                echo \Debug::dump($url, 'gallery/image/%s');
+                try {
+                    $request = $client->get(sprintf('gallery/image/%s', last(explode('/', $url))));
+                    $type = 'image';
+                } catch (\GuzzleHttp\Exception\ClientException $e) {
+                    $msgSet = [
+                        'mode'   => 'imgur',
+                        'title'  => '[ Imgur - '.$e->getMessage().' ]',
+                    ];
+                    return;
+                }
+            }
+        break;
+
+        case strpos($url, 'i.imgur.com/'):
+            $type = 'image';
+            $filename = last(explode('/', $url));
+            $file = head(explode('.', $filename));
+            $apiUrl = sprintf('image/%s', $file);
+        break;
+    }
+
+    // if empty $apiUrl && $request, do nothing
+    if (empty($apiUrl) && $request === false) {
+        return;
+    }
+
+    // if $request is still false, try and grab something
+    if ($request === false) {
+        try {
+            $request = $client->get($apiUrl);
+        } catch (GuzzleHttp\Exception\ClientException $e) {
+            $msgSet = [
+                'mode'   => 'imgur',
+                'title'  => '[ Imgur - '.$e->getMessage().' ]',
+            ];
+            return;
+        }
+    }
+
+    // make sure status code is right
+    if ($request->getStatusCode() != '200') {
+        return;
+    }
+
+    // grab the json
+    $json = json_decode($request->getBody(true), true);
+    if (!count($json)) {
+        return;
+    }
+
+    // output the  info
+    $return = null;
+    switch($type) {
+        case 'gallery':
+            $return = sprintf(
+                '%s (Views: %d, Image Count: %d, NSFW: %s, Posted: %s)',
+                array_get($json, 'data.title'),
+                array_get($json, 'data.views'),
+                array_get($json, 'data.images_count'),
+                array_get($json, 'data.nsfw', null) === null ? 'false' : 'true',
+                date_difference(time()-array_get($json, 'data.datetime'))
+            );
+        break;
+
+        case 'image':
+            $return = sprintf(
+                '%s (Dimensions: %sx%s, Views: %d, Animated: %s, NSFW: %s, Posted: %s)',
+                array_get($json, 'data.title'),
+                array_get($json, 'data.height'),
+                array_get($json, 'data.width'),
+                array_get($json, 'data.views'),
+                array_get($json, 'data.animated', null) !== true ? 'false' : 'true',
+                array_get($json, 'data.nsfw', null) !== true ? 'false' : 'true',
+                date_difference(time()-array_get($json, 'data.datetime'))
+            );
+        break;
+    }
+
+    $msgSet = [
+        'mode'   => 'imgur',
+        'title'  => '[ Imgur - '.$return.' ]',
+    ];
+    return false;
+}, 6);
 
 
 // detect youtube links
@@ -146,6 +265,48 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
     return false;
 }, 10);
 
+// detect imdb links
+Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
+    if (!strpos($url, 'imdb.com')) {
+        return;
+    }
+
+    $request = with(new Goutte\Client())->request('GET', $url);
+    if (($request instanceof Symfony\Component\DomCrawler\Crawler) === false) {
+        return;
+    }
+
+    $parts = [
+        'title'          => getNode($request, '#overview-top h1.header .itemprop[itemprop=name]', null),
+        'year'           => str_replace(['(', ')'], '', getNode($request, '#overview-top h1.header .nobr', null)),
+        'length'         => secs_to_h(Carbon\Carbon::parse(getNode($request, '.infobar time[itemprop=duration]', null))->diffInSeconds()),
+        'content-rating' => $request->filter('.infobar span[itemprop=contentRating]')->attr('title') ?: null,
+        'rating'         => getNode($request, '.star-box span[itemprop=ratingValue]', 0).'/10',
+        'age'            => date_difference(Carbon\Carbon::parse($request->filter('.infobar meta[itemprop=datePublished]')->attr('content'))->diffInSeconds()) ?: null,
+        'reviews'        => inBetween('See all ', ' user reviews', $request->filter('.user-comments .see-more a:last-child')->text()) ?: null,
+    ];
+
+    $return = null;
+
+    $return = sprintf(
+        '%s (Year: %d, Length: %s, Content Rating: %s, Public Rating: %.1f/10, Age: %s, User Reviews: %d)',
+        array_get($parts, 'title'),
+        array_get($parts, 'year'),
+        array_get($parts, 'length'),
+        array_get($parts, 'content-rating'),
+        array_get($parts, 'rating'),
+        array_get($parts, 'age'),
+        array_get($parts, 'reviews')
+    );
+
+
+    $msgSet = [
+        'mode'   => 'imdb',
+        'title'  => '[ IMDB - '.$return.' ]',
+    ];
+    return false;
+}, 10);
+
 // detect github links
 Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
     if (!strpos($url, 'github.com/') !== false) {
@@ -171,10 +332,10 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
                     getNode($request, 'h1.gh-header-title span.js-issue-title', null),
                     getNode($request, 'a.author', 0),
                     getNode($request, 'div.gh-header-meta .state', 0),
-                    0
+                    inBetween('· ', ' comment', getNode($request, '.flex-table-item.flex-table-item-primary', null))
                 ));
             }
-        break;
+            break;
 
         // https://github.com/<username>/<repo>/pull/<pull_id>
         case (strpos($url, '/pull/') !== false):
@@ -188,7 +349,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
                 getNode($request, 'span#commits_tab_counter', 0),
                 getNode($request, 'span#files_tab_counter', 0)
             ));
-        break;
+            break;
 
         // https://github.com/<username>/<repo>/pulls
         case (strpos($url, '/pulls') !== false):
@@ -198,7 +359,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
                 getNode($request, '.table-list-header-toggle.states a:first-child', 0),
                 getNode($request, '.table-list-header-toggle.states a:last-child', 0)
             ));
-        break;
+            break;
 
         // https://github.com/<username>/<repo>/commit/<commit_hash>
         case (strpos($url, '/commit/') !== false):
@@ -209,7 +370,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
                 getNode($request, '.author-name a[rel="author"]', null),
                 getNode($request, '.toc-diff-stats button', null)
             ));
-        break;
+            break;
 
         // https://github.com/<username>/<repo>/blob/<branch>/<path/to/file.ext>
         case (strpos($url, '/blob/') !== false):
@@ -220,7 +381,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
                 getNode($request, '.info.file-name span:first-child', '0 lines'),
                 getNode($request, '.info.file-name span:last-child', '0.00 kb')
             ));
-        break;
+            break;
 
         // https://github.com/<username>/<repo>/
         case (preg_match('/github.com\/.*\/.*$/U', $url)):
@@ -232,7 +393,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
                 getNode($request, '.stats-switcher-wrapper li:nth-child(1) span.num', 0),
                 getNode($request, '.stats-switcher-wrapper li:nth-child(4) span.num', 0)
             ));
-        break;
+            break;
 
         // https://github.com/<username>
         // https://github.com/<organisation>
@@ -258,7 +419,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
                     getNode($request, '.js-username ul.vcard-details li:last-child', 0)
                 );
             }
-        break;
+            break;
 
     }
 
@@ -297,7 +458,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
     if (!empty($title)) {
         $msgSet = [
             'mode'  => 'url',
-            'title' => $title,
+            'title' => 'URL Found: '.$title,
         ];
         return false;
     }
@@ -309,79 +470,81 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
 
 /** Helpers **/
 
-function secs_to_h($secs)
-{
-    $units = array(
-        'week'   => 7*24*3600,
-        'day'    => 24*3600,
-        'hour'   => 3600,
-        'minute' => 60,
-        'second' => 1,
-    );
+// function secs_to_h($secs)
+// {
+//     $units = array(
+//         'year'   => 365*24*3600,
+//         'month'  => 30*24*3600,
+//         'week'   => 7*24*3600,
+//         'day'    => 24*3600,
+//         'hour'   => 3600,
+//         'minute' => 60,
+//         'second' => 1,
+//     );
 
-    // specifically handle zero
-    if ($secs == 0) {
-        return '0 seconds';
-    }
+//     // specifically handle zero
+//     if ($secs == 0) {
+//         return '0 seconds';
+//     }
 
-    $s = '';
+//     $s = '';
 
-    foreach ($units as $name => $divisor) {
-        if ($quot = intval($secs / $divisor)) {
-            $s .= $quot.' '.$name;
-            $s .= (abs($quot) > 1 ? 's' : '') . ', ';
-            $secs -= $quot * $divisor;
-        }
-    }
+//     foreach ($units as $name => $divisor) {
+//         if ($quot = intval($secs / $divisor)) {
+//             $s .= $quot.' '.$name;
+//             $s .= (abs($quot) > 1 ? 's' : '') . ', ';
+//             $secs -= $quot * $divisor;
+//         }
+//     }
 
-    return substr($s, 0, -2);
-}
-
-
-function getPNGImageXY($data)
-{
-    //The identity for a PNG is 8Bytes (64bits)long
-    $ident = unpack('Nupper/Nlower', $data);
-    //Make sure we get PNG
-    if ($ident['upper'] !== 0x89504E47 || $ident['lower'] !== 0x0D0A1A0A) {
-        return false;
-    }
-
-    //Get rid of the first 8 bytes that we processed
-    $data = substr($data, 8);
-    //Grab the first chunk tag, should be IHDR
-    $chunk = unpack('Nlength/Ntype', $data);
-    //IHDR must come first, if not we return false
-    if ($chunk['type'] === 0x49484452) {
-        //Get rid of the 8 bytes we just processed
-        $data = substr($data, 8);
-        //Grab our x and y
-        $info = unpack('NX/NY', $data);
-        //Return in common format
-        return array($info['X'], $info['Y']);
-    } else {
-        return false;
-    }
-}
-
-function getGIFImageXY($data)
-{
-    // The identity for a GIF is 6bytes (48Bits)long
-    $ident = unpack('nupper/nmiddle/nlower', $data);
-    // Make sure we get GIF 87a or 89a
-    if ($ident['upper'] !== 0x4749 || $ident['middle'] !== 0x4638 || ($ident['lower'] !== 0x3761 && $ident['lower'] !== 0x3961)) {
-        return false;
-    }
-    // Get rid of the first 6 bytes that we processed
-    $data = substr($data, 6);
-    // Grab our x and y, GIF is little endian for width and length
-    $info = unpack('vX/vY', $data);
-    // Return in common format
-    return array($info['X'], $info['Y']);
-}
+//     return substr($s, 0, -2);
+// }
 
 
-function getNode($request, $selector, $default = null)
-{
-    return $request->filter($selector)->count() ? strip_whitespace($request->filter($selector)->first()->text()) : $default;
-}
+// function getPNGImageXY($data)
+// {
+//     //The identity for a PNG is 8Bytes (64bits)long
+//     $ident = unpack('Nupper/Nlower', $data);
+//     //Make sure we get PNG
+//     if ($ident['upper'] !== 0x89504E47 || $ident['lower'] !== 0x0D0A1A0A) {
+//         return false;
+//     }
+
+//     //Get rid of the first 8 bytes that we processed
+//     $data = substr($data, 8);
+//     //Grab the first chunk tag, should be IHDR
+//     $chunk = unpack('Nlength/Ntype', $data);
+//     //IHDR must come first, if not we return false
+//     if ($chunk['type'] === 0x49484452) {
+//         //Get rid of the 8 bytes we just processed
+//         $data = substr($data, 8);
+//         //Grab our x and y
+//         $info = unpack('NX/NY', $data);
+//         //Return in common format
+//         return array($info['X'], $info['Y']);
+//     } else {
+//         return false;
+//     }
+// }
+
+// function getGIFImageXY($data)
+// {
+//     // The identity for a GIF is 6bytes (48Bits)long
+//     $ident = unpack('nupper/nmiddle/nlower', $data);
+//     // Make sure we get GIF 87a or 89a
+//     if ($ident['upper'] !== 0x4749 || $ident['middle'] !== 0x4638 || ($ident['lower'] !== 0x3761 && $ident['lower'] !== 0x3961)) {
+//         return false;
+//     }
+//     // Get rid of the first 6 bytes that we processed
+//     $data = substr($data, 6);
+//     // Grab our x and y, GIF is little endian for width and length
+//     $info = unpack('vX/vY', $data);
+//     // Return in common format
+//     return array($info['X'], $info['Y']);
+// }
+
+
+// function getNode($request, $selector, $default = null)
+// {
+//     return $request->filter($selector)->count() ? strip_whitespace($request->filter($selector)->first()->text()) : $default;
+// }

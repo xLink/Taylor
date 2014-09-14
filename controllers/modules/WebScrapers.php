@@ -9,10 +9,24 @@ use Symfony\Component\DomCrawler\Crawler;
 $trigger = \Config::get('taylor::bot.command_trigger', '>');
 
 Command::register($trigger.'xkcd', function (Command $command) {
-    $url = sprintf('http://c.xkcd.com/random/comic/');
-    $crawler = with(new Goutte\Client())->request('GET', $url);
-    if (($crawler instanceof Symfony\Component\DomCrawler\Crawler) === false) {
+    if (!count($command->params) || substr($command->params[0], 0, 1) == '?') {
+        return Message::privmsg($command->message->channel(), 'Usage: <comic_id=random>');
+    }
+    $comic_id = $command->params[0];
+    if ($comic_id == 0 || !ctype_digit((string)$comic_id)) {
+        $url = 'http://c.xkcd.com/random/comic/';
+    } else {
+        $url = sprintf('http://xkcd.com/%d/', $comic_id);
+    }
+
+    $request = with(new Goutte\Client())->request('GET', $url);
+    if (($request instanceof Symfony\Component\DomCrawler\Crawler) === false) {
         return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
+    }
+
+    $body = $request->html();
+    if (strpos($body, '404 - Not Found') !== false) {
+        return Message::privmsg($command->message->channel(), color('Comic Not Found.'));
     }
 
     $parts = [
@@ -20,12 +34,51 @@ Command::register($trigger.'xkcd', function (Command $command) {
     ];
 
     foreach ($parts as $key => $selector) {
-        $parts[$key] = $crawler->filter($selector)->count() > 0
-                        ? strip_whitespace($crawler->filter($selector)->first()->attr('src'))
+        $parts[$key] = $request->filter($selector)->count() > 0
+                        ? strip_whitespace($request->filter($selector)->first()->attr('src'))
                         : null;
     }
 
-    $msgs[] = Message::privmsg($command->message->channel(), color($parts['img']));
+    $id = inBetween('Permanent link to this comic: http://xkcd.com/', '/', $body);
+
+    $msgs[] = Message::privmsg($command->message->channel(), color('xkcd#'.$id.' - '.$parts['img']));
+
+    return $msgs;
+});
+
+Command::register($trigger.'cyaness', function (Command $command) {
+    if (!count($command->params) || substr($command->params[0], 0, 1) == '?') {
+        return Message::privmsg($command->message->channel(), 'Usage: <comic_id=random>');
+    }
+    $comic_id = $command->params[0];
+    if ($comic_id == 0 || !ctype_digit((string)$comic_id)) {
+        $comic_id = 'random';
+    }
+
+    $url = sprintf('http://explosm.net/comics/%s/', $comic_id);
+    $request = with(new Goutte\Client())->request('GET', $url);
+    if (($request instanceof Symfony\Component\DomCrawler\Crawler) === false) {
+        return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
+    }
+
+    $body = $request->html();
+    if (strpos($body, 'Comic could not be found') !== false) {
+        return Message::privmsg($command->message->channel(), color('Comic Not Found.'));
+    }
+
+    $parts = [
+        'img' => '#maincontent div[align=center] div img',
+    ];
+
+    foreach ($parts as $key => $selector) {
+        $parts[$key] = $request->filter($selector)->count() > 0
+                        ? strip_whitespace($request->filter($selector)->first()->attr('src'))
+                        : null;
+    }
+
+    $id = inBetween('Cyanide & Happiness #', ' - Explosm.net', $request->filter('title')->text());
+
+    $msgs[] = Message::privmsg($command->message->channel(), color('Cyanide & Happiness#'.$id.' - '.$parts['img']));
 
     return $msgs;
 });
