@@ -1,6 +1,6 @@
 <?php
 
-Route::api(['version' => 'v1', 'prefix' => \Config::get('core::routes.paths.api', 'api')], function () use ($namespace) {
+Route::group(['version' => 'v1', 'prefix' => \Config::get('core::routes.paths.api', 'api')], function () use ($namespace) {
     $namespace .= '\Api\V1';
 
     Route::group(['prefix' => 'taylor'], function () use ($namespace) {

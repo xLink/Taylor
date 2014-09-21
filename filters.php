@@ -73,3 +73,111 @@ function run_cmd($channel, $command, $params = [])
     $callFunc = Irc\Message::parse(sprintf(': PRIVMSG %s :%s %s', $channel, $command, $params));
     return Irc\Command::make($callFunc)->run();
 }
+
+
+function secs_to_h($secs)
+{
+    $units = array(
+        'year'   => 365*24*3600,
+        'month'  => 30*24*3600,
+        'week'   => 7*24*3600,
+        'day'    => 24*3600,
+        'hour'   => 3600,
+        'minute' => 60,
+        'second' => 1,
+    );
+
+    // specifically handle zero
+    if ($secs == 0) {
+        return '0 seconds';
+    }
+
+    $s = '';
+
+    foreach ($units as $name => $divisor) {
+        if ($quot = intval($secs / $divisor)) {
+            $s .= $quot.' '.$name;
+            $s .= (abs($quot) > 1 ? 's' : '') . ', ';
+            $secs -= $quot * $divisor;
+        }
+    }
+
+    return substr($s, 0, -2);
+}
+
+
+/** img helpers **/
+function getPNGImageXY($data)
+{
+    //The identity for a PNG is 8Bytes (64bits)long
+    $ident = unpack('Nupper/Nlower', $data);
+    //Make sure we get PNG
+    if ($ident['upper'] !== 0x89504E47 || $ident['lower'] !== 0x0D0A1A0A) {
+        return false;
+    }
+
+    //Get rid of the first 8 bytes that we processed
+    $data = substr($data, 8);
+    //Grab the first chunk tag, should be IHDR
+    $chunk = unpack('Nlength/Ntype', $data);
+    //IHDR must come first, if not we return false
+    if ($chunk['type'] === 0x49484452) {
+        //Get rid of the 8 bytes we just processed
+        $data = substr($data, 8);
+        //Grab our x and y
+        $info = unpack('NX/NY', $data);
+        //Return in common format
+        return array($info['X'], $info['Y']);
+    } else {
+        return false;
+    }
+}
+
+function getGIFImageXY($data)
+{
+    // The identity for a GIF is 6bytes (48Bits)long
+    $ident = unpack('nupper/nmiddle/nlower', $data);
+    // Make sure we get GIF 87a or 89a
+    if ($ident['upper'] !== 0x4749 || $ident['middle'] !== 0x4638 || ($ident['lower'] !== 0x3761 && $ident['lower'] !== 0x3961)) {
+        return false;
+    }
+    // Get rid of the first 6 bytes that we processed
+    $data = substr($data, 6);
+    // Grab our x and y, GIF is little endian for width and length
+    $info = unpack('vX/vY', $data);
+    // Return in common format
+    return array($info['X'], $info['Y']);
+}
+
+/** goutte helper **/
+function getNode($request, $selector, $default = null)
+{
+    return $request->filter($selector)->count() ? strip_whitespace($request->filter($selector)->first()->text()) : $default;
+}
+
+function goutteClient() {
+    $client = new Goutte\Client();
+    $client->getClient()->setDefaultOption('config', ['curl' => ['CURLOPT_TIMEOUT' => 2]]);
+
+    return $client;
+}
+
+function goutteRequest(Goutte\Client $client, $url, $method = 'get') {
+
+    try {
+        $request = $client->request(strtoupper($method), $url);
+    } catch (GuzzleHttp\Exception\RequestException $e) {
+        return -1;
+    }
+
+    if (($request instanceof Symfony\Component\DomCrawler\Crawler) === false) {
+        return -2;
+    }
+
+    if ($client->getResponse()->getStatus() != '200') {
+        return -3;
+    }
+
+    return $request;
+}
+

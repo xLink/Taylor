@@ -19,7 +19,7 @@ Command::register($trigger.'xkcd', function (Command $command) {
         $url = sprintf('http://xkcd.com/%d/', $comic_id);
     }
 
-    $request = with(new Goutte\Client())->request('GET', $url);
+    $request = goutteRequest(goutteClient(), $url, 'get');
     if (($request instanceof Symfony\Component\DomCrawler\Crawler) === false) {
         return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
     }
@@ -56,7 +56,7 @@ Command::register($trigger.'cyaness', function (Command $command) {
     }
 
     $url = sprintf('http://explosm.net/comics/%s/', $comic_id);
-    $request = with(new Goutte\Client())->request('GET', $url);
+    $request = goutteRequest(goutteClient(), $url, 'get');
     if (($request instanceof Symfony\Component\DomCrawler\Crawler) === false) {
         return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
     }
@@ -88,6 +88,9 @@ Command::register($trigger.'weather', function (Command $command) {
 });
 
 Command::register($trigger.'w', function (Command $command) {
+    if (!strlen($command->text)) {
+        return Message::privmsg($command->message->channel(), color('Error: Location seems to be invalid, try again.'));
+    }
     $text = $command->text;
 
     // get long & lat of requested location from google
@@ -98,7 +101,7 @@ Command::register($trigger.'w', function (Command $command) {
     }
 
     $gAPI = json_decode($gAPI->getBody(true));
-    if (!count($gAPI)) {
+    if (!count($gAPI) || !isset($gAPI->results[0])) {
         return Message::privmsg($command->message->channel(), color('Error: Location seems to be invalid, try again.'));
     }
 
@@ -137,7 +140,8 @@ Command::register($trigger.'fml', function (Command $command) {
     }
 
     // Do the request.
-    $request = with(new Goutte\Client())->request('GET', 'http://www.fmylife.com/random');
+    $url = 'http://www.fmylife.com/random';
+    $request = goutteRequest(goutteClient(), $url, 'get');
     if (($request instanceof Symfony\Component\DomCrawler\Crawler) === false) {
         return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
     }
@@ -180,6 +184,7 @@ Command::register($trigger.'isup', function (Command $command) {
         $client = new Goutte\Client();
         $guzzle = $client->getClient(); // Get the client
         $guzzle->setDefaultOption('verify', false); // Don't verify SSL certificates.
+        $guzzle->setDefaultOption('config', ['curl' => ['CURLOPT_TIMEOUT' => 2]]); // timeout to 2 seconds
         $client->setClient($guzzle); // Tell Goutte to use the modified client.
         $request = $client->request('GET', $url); // Fire off the request.
     } catch (GuzzleHttp\Exception\RequestException $b) {
@@ -202,7 +207,7 @@ Command::register($trigger.'curr', function (Command $command) {
     }
 
     $params = [
-        'q'     => $command->params[0],
+        'q'     => str_replace([','], '', $command->params[0]),
         'from'  => $command->params[1],
         'to'    => $command->params[2],
     ];
@@ -210,12 +215,16 @@ Command::register($trigger.'curr', function (Command $command) {
     $url = sprintf('http://rate-exchange.appspot.com/currency?%s', http_build_query($params));
 
     // make sure we got something
-    $request = with(new GuzzleHttp\Client())->get($url);
+    try {
+        $request = with(new GuzzleHttp\Client())->get($url);
+    } catch (\GuzzleHttp\Exception\ServerException $e) {
+        return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
+    }
+
     if ($request->getStatusCode() != '200') {
         return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
     }
 
-    // decode the json
     $data = json_decode($request->getBody(true), true);
     if (!count($data)) {
         return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
@@ -223,6 +232,10 @@ Command::register($trigger.'curr', function (Command $command) {
 
     if (isset($data['err'])) {
         return Message::privmsg($command->message->channel(), color('Error: Could not process input. Usage: <value> <currency_from> <currency_to>'));
+    }
+
+    if (isset($data['warning'])) {
+        return Message::privmsg($command->message->channel(), color('Error: '.$data['warning']));
     }
 
     // and output
@@ -240,7 +253,7 @@ Command::register($trigger.'calc', function (Command $command) {
     ]);
 
     // grab the request
-    $request = with(new Goutte\Client())->request('GET', $url);
+    $request = goutteRequest(goutteClient(), $url, 'get');
     if (($request instanceof Symfony\Component\DomCrawler\Crawler) === false) {
         return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
     }

@@ -38,6 +38,13 @@ Command::register($trigger.'cmds', function (Command $command) {
     return $msgs;
 });
 
+// make her say жД when aro comes out with xD
+Message::listen('privmsg', function (Message $message) {
+    if ($message->sender->nick == 'aroticoz' && strpos($message->params[1], 'xD') !== false) {
+        return Message::privmsg($message->params[0], color('жД'));
+    }
+});
+
 if (false) {
     Message::listen('*', function (Message $message) {
         message_debug($message);

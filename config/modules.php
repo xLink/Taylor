@@ -6,6 +6,7 @@ return [
     $path.'/Core.php',
     $path.'/String.php',
     $path.'/Docs.php',
+    $path.'/QuoteDB.php',
     $path.'/WebScrapers.php',
     $path.'/UrlDetection.php',
 ];

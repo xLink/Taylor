@@ -18,11 +18,15 @@ return [
         '#bots',
         '#cybershade',
         '#darkscience',
+        '#darchoods',
+        '#php',
+        '#chasenet',
+        '#treehouse',
     ],
 
     'log_file'       => storage_path().'/taylor.log',
     'log'            => function (\Cysha\Modules\Taylor\Helpers\Irc\Message $message, $sent = false) {
-        echo $message->raw.PHP_EOL;
+        echo date('H:i:s', time()).' '.$message->raw.PHP_EOL;
         //ob_flush(); flush();
     },
 ];
