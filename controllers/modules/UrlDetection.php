@@ -12,7 +12,16 @@ Message::listen('privmsg', function ($message) {
         return;
     }
 
-    preg_match_all("@\b(https?://)?(([0-9a-zA-Z_!~*'().&=+$%-]+:)?[0-9a-zA-Z_!~*'().&=+$%-]+\@)?(([0-9]{1,3}\.){3}[0-9]{1,3}|([0-9a-zA-Z_!~*'()-]+\.)*([0-9a-zA-Z][0-9a-zA-Z-]{0,61})?[0-9a-zA-Z]\.[a-zA-Z]{2,6})(:[0-9]{1,4})?((/[0-9a-zA-Z_!~*'().;?:\@&=+$,%#-]+)*/?)@", $message->params[1], $urls);
+    $raw = $message->params[1];
+
+    // detect spotify protocol urls
+    $raw = str_replace(
+        ['spotify:track:'],
+        ['http://open.spotify.com/track/'],
+        $raw
+    );
+
+    preg_match_all("@\b(https?://)?(([0-9a-zA-Z_!~*'().&=+$%-]+:)?[0-9a-zA-Z_!~*'().&=+$%-]+\@)?(([0-9]{1,3}\.){3}[0-9]{1,3}|([0-9a-zA-Z_!~*'()-]+\.)*([0-9a-zA-Z][0-9a-zA-Z-]{0,61})?[0-9a-zA-Z]\.[a-zA-Z]{2,6})(:[0-9]{1,4})?((/[0-9a-zA-Z_!~*'().;?:\@&=+$,%#-]+)*/?)@", $raw, $urls);
 
     if (!count($urls[0])) {
         return;
@@ -159,6 +168,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
         break;
 
         case strpos($url, 'i.imgur.com/'):
+        case strpos($url, 'imgur.com/'):
             $type = 'image';
             $filename = last(explode('/', $url));
             $file = head(explode('.', $filename));
@@ -230,7 +240,6 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
     return false;
 }, 6);
 
-
 // detect youtube links
 Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
     if (!strpos($url, 'youtube.co') && !strpos($url, 'youtu.be')) {
@@ -261,6 +270,47 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
     $msgSet = [
         'mode'   => 'youtube',
         'title'  => '[ You'.color('Tube', 'red').' - '.implode(' | ', [$title, 'Length: '.secs_to_h($length)]).' ]',
+    ];
+    return false;
+}, 10);
+
+
+// spotify links
+Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
+    if (strpos($url, 'spotify.com/') === false && strpos($url, 'spotify:') === false) {
+        return;
+    }
+
+    $id = substr($url, -22);
+
+    $client = new GuzzleHttp\Client([
+        'timeout'  => 2,
+    ]);
+
+    try {
+        $request = $client->get(sprintf('https://api.spotify.com/v1/tracks/%s', $id));
+    } catch (\GuzzleHttp\Exception\ServerException $e) {
+        return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
+    }
+
+    $json = $request->json();
+
+    $return = sprintf(
+        '%s (Artist: %s, Album: %s, Explicit: %s, Length: %s)',
+        array_get($json, 'name'),
+        array_get($json, 'artists.0.name'),
+        array_get($json, 'album.name'),
+        array_get($json, 'explicit', false) !== true ? 'false' : 'true',
+        secs_to_h(array_get($json, 'duration_ms', 1)/1000)
+    );
+
+    if (empty($return)) {
+        return;
+    }
+
+    $msgSet = [
+        'mode'   => 'spotify',
+        'title'  => '[ Spotify - '.$return.' ]',
     ];
     return false;
 }, 10);
