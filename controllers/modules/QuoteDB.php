@@ -7,7 +7,7 @@ $trigger = \Config::get('taylor::bot.command_trigger', '>');
 
 // setup a new client
 $client = new GuzzleHttp\Client([
-    'base_url' => 'http://www.darchoods.net/api/qdb/',
+    'base_url' => 'https://www.darchoods.net/api/qdb/',
     'defaults' => ['headers' => ['X-Auth-Token' => Config::get('taylor::api.darchoods')]],
     'timeout'  => 2,
 ]);
