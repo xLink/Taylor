@@ -74,38 +74,6 @@ function run_cmd($channel, $command, $params = [])
     return Irc\Command::make($callFunc)->run();
 }
 
-
-function secs_to_h($secs)
-{
-    $units = array(
-        'year'   => 365*24*3600,
-        'month'  => 30*24*3600,
-        'week'   => 7*24*3600,
-        'day'    => 24*3600,
-        'hour'   => 3600,
-        'minute' => 60,
-        'second' => 1,
-    );
-
-    // specifically handle zero
-    if ($secs == 0) {
-        return '0 seconds';
-    }
-
-    $s = '';
-
-    foreach ($units as $name => $divisor) {
-        if ($quot = intval($secs / $divisor)) {
-            $s .= $quot.' '.$name;
-            $s .= (abs($quot) > 1 ? 's' : '') . ', ';
-            $secs -= $quot * $divisor;
-        }
-    }
-
-    return substr($s, 0, -2);
-}
-
-
 /** img helpers **/
 function getPNGImageXY($data)
 {
@@ -155,18 +123,27 @@ function getNode($request, $selector, $default = null)
     return $request->filter($selector)->count() ? strip_whitespace($request->filter($selector)->first()->text()) : $default;
 }
 
-function goutteClient() {
+function goutteClient()
+{
     $client = new Goutte\Client();
     $client->getClient()->setDefaultOption('config', ['curl' => ['CURLOPT_TIMEOUT' => 2]]);
 
     return $client;
 }
 
-function goutteRequest(Goutte\Client $client, $url, $method = 'get') {
+function goutteRequest(Goutte\Client $client, $url, $method = 'get')
+{
+    if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        return false;
+    }
 
     try {
         $request = $client->request(strtoupper($method), $url);
     } catch (GuzzleHttp\Exception\RequestException $e) {
+        return -1;
+    } catch (InvalidArgumentException $e) {
+        return -1;
+    } catch (Exception $e) {
         return -1;
     }
 
@@ -181,3 +158,42 @@ function goutteRequest(Goutte\Client $client, $url, $method = 'get') {
     return $request;
 }
 
+function guzzleClient($method, $url, $data = [])
+{
+    if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        return false;
+    }
+
+    if (count($data)) {
+        $data = ['body' => $data];
+    }
+
+    try {
+        $response = with(new GuzzleHttp\Client())->$method($url, $data);
+    } catch (\GuzzleHttp\Exception\ClientException $e) {
+        return -1;
+    } catch (Exception $e) {
+        return -0;
+    }
+
+    if ($response->getStatusCode() != '200') {
+        return -2;
+    }
+
+    return $response;
+}
+
+function getHumanReadableSize($size, $unit = null, $decimals = 2)
+{
+    $byteUnits = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+    if (!is_null($unit) && !in_array($unit, $byteUnits)) {
+        $unit = null;
+    }
+    $extent = 1;
+    foreach ($byteUnits as $rank) {
+        if ((is_null($unit) && ($size < $extent <<= 10)) || ($rank == $unit)) {
+            break;
+        }
+    }
+    return number_format($size / ($extent >> 10), $decimals) . $rank;
+}
