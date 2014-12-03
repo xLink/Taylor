@@ -74,7 +74,7 @@ function run_cmd($channel, $command, $params = [])
     return Irc\Command::make($callFunc)->run();
 }
 
-
+/**
 function secs_to_h($secs)
 {
     $units = array(
@@ -103,7 +103,7 @@ function secs_to_h($secs)
     }
 
     return substr($s, 0, -2);
-}
+}*/
 
 
 /** img helpers **/
