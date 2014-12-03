@@ -29,13 +29,13 @@ Command::register($trigger.'quote', function (Command $command) use ($client) {
     }
 
     if ($request->getStatusCode() != '200') {
-        return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
+        return Message::privmsg($command->message->channel(), color('Error: QDB appears to be down, Try again later.'));
     }
 
     $data = $request->json();
     $quote = array_get($data, 'data.quote');
     if ($quote == false) {
-        return Message::privmsg($command->message->channel(), color('Error: No Quotes found for channel.'));
+        return Message::privmsg($command->message->channel(), color('Error: Either Quote wasnt found or there are no quotes in this channel.'));
     }
 
     return Message::privmsg($command->message->channel(), sprintf(
@@ -57,7 +57,7 @@ Command::register($trigger.'addquote', function (Command $command) use ($client)
         return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
     }
     if ($request->getStatusCode() != '200') {
-        return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
+        return Message::privmsg($command->message->channel(), color('Error: QDB appears to be down, Try again later.'));
     }
 
     $data = $request->json();

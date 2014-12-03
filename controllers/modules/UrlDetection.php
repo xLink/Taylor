@@ -29,6 +29,22 @@ Message::listen('privmsg', function ($message) {
 
     $msgs = [];
     foreach ($urls[0] as $url) {
+        if (preg_match('(10\.(0|[1-9]|1[0-9]|2[0-4][0-9]|25[0-5]|1[0-9][0-9]?)\.(0|[1-9]|1[0-9]|2[0-4][0-9]|25[0-5]|1[0-9][0-9]?)\.(0|[1-9]|1[0-9]|2[0-4][0-9]|25[0-5]|1[0-9][0-9]?))', $url)) {
+            continue;
+        }
+
+        if (preg_match('(192\.168\.(0|[1-9]|1[0-9]|2[0-4][0-9]|25[0-5]|1[0-9][0-9]?)\.(0|[1-9]|1[0-9]|2[0-4][0-9]|25[0-5]|1[0-9][0-9]?))', $url)) {
+            continue;
+        }
+
+        if (preg_match('(172\.(1[6-9]|2[0-9]|3[0-1])\.(0|[1-9]|1[0-9]|2[0-4][0-9]|25[0-5]|1[0-9][0-9]?)\.(0|[1-9]|1[0-9]|2[0-4][0-9]|25[0-5]|1[0-9][0-9]?))', $url)) {
+            continue;
+        }
+
+        if (preg_match('(127.0.0.1)', $url)) {
+            continue;
+        }
+
         $msgSet = [];
         Event::fire('taylor::privmsg: urlDetection', array($url, &$msgSet));
 
@@ -210,27 +226,33 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
     switch($type) {
         case 'gallery':
             $return = sprintf(
-                '%s (Views: %d, Image Count: %d, NSFW: %s, Posted: %s)',
+                '%s (Views: %d, Image Count: %d, Posted: %s',
                 array_get($json, 'data.title'),
                 array_get($json, 'data.views'),
                 array_get($json, 'data.images_count'),
-                array_get($json, 'data.nsfw', null) === null ? 'false' : 'true',
                 date_difference(time()-array_get($json, 'data.datetime'))
             );
         break;
 
         case 'image':
             $return = sprintf(
-                '%s (Dimensions: %sx%s, Views: %d, Animated: %s, NSFW: %s, Posted: %s)',
+                '%s (Dimensions: %sx%s, Views: %d, Size: %s, Posted: %s',
                 array_get($json, 'data.title'),
                 array_get($json, 'data.height'),
                 array_get($json, 'data.width'),
                 array_get($json, 'data.views'),
-                array_get($json, 'data.animated', null) !== true ? 'false' : 'true',
-                array_get($json, 'data.nsfw', null) !== true ? 'false' : 'true',
+                getHumanReadableSize(array_get($json, 'data.size', 0)),
                 date_difference(time()-array_get($json, 'data.datetime'))
             );
         break;
+    }
+    if (($animated = array_get($json, 'data.animated', null)) !== null && !empty($animated)) {
+        $return .= ', Animated: true';
+    }
+    $return .= ')';
+
+    if (($nsfw = array_get($json, 'data.nsfw', null)) !== null && !empty($nsfw)) {
+        $return .= color(' NSFW', 'red');
     }
 
     $msgSet = [
@@ -317,6 +339,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
 
 // detect imdb links
 Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
+    return;
     if (!strpos($url, 'imdb.com')) {
         return;
     }

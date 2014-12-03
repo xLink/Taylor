@@ -6,7 +6,7 @@ use Cysha\Modules\Taylor\Helpers\Irc as Irc;
 $trigger = \Config::get('taylor::bot.command_trigger', '>');
 
 Command::register($trigger.'hex2dec', function (Command $command) {
-    if (empty($command->params) || substr($command->params[0], 0, 1) == '?') {
+    if (empty($command->params[0]) || substr($command->params[0], 0, 1) == '?') {
         return Message::privmsg($command->message->channel(), 'Usage: <hex>');
     }
 
@@ -24,7 +24,7 @@ Command::register($trigger.'hex2dec', function (Command $command) {
 });
 
 Command::register($trigger.'str2hex', function (Command $command) {
-    if (empty($command->params) || substr($command->params[0], 0, 1) == '?') {
+    if (empty($command->params[0]) || substr($command->params[0], 0, 1) == '?') {
         return Message::privmsg($command->message->channel(), 'Usage: <hex>');
     }
 
@@ -106,12 +106,16 @@ Message::listen('privmsg', function ($message) {
         $message = $e->getMessage();
     }
 
-    return Message::privmsg($channel, color(sprintf(
-        'PHP> %s(%s) // %s',
+    $cmd = sprintf(
+        'PHP> %s(%s) // ',
         $command,
-        count($params) ? '\''.implode('\', \'', $params).'\'' : null,
-        $return === false ? color($message, 'red') : color($return, 'green')
-    )));
+        count($params) ? '\''.implode('\', \'', $params).'\'' : null
+    );
+
+    $output = $return === false ? color($message, 'red') : color($return, 'green');
+    $output = Str::limit($output, 255-strlen($cmd));
+
+    return Message::privmsg($channel, color($cmd.$output));
 });
 
 /**

@@ -8,7 +8,7 @@ use Symfony\Component\DomCrawler\Crawler;
 $trigger = \Config::get('taylor::bot.command_trigger', '>');
 
 Command::register($trigger.'php', function (Command $command) {
-    if (!count($command->params) || substr($command->params[0], 0, 1) == '?') {
+    if (empty($command->params[0]) || substr($command->params[0], 0, 1) == '?') {
         return Message::privmsg($command->message->channel(), 'Usage: <function>');
     }
 
@@ -20,7 +20,10 @@ Command::register($trigger.'php', function (Command $command) {
 
     // do the request
     $url = 'http://php.net/function.'.$command->params[0];
-    $crawler = with(new Goutte\Client())->request('GET', $url);
+    $request = goutteRequest(goutteClient(), $url, 'get');
+    if (($request instanceof Symfony\Component\DomCrawler\Crawler) === false) {
+        return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
+    }
 
     // setup a list of parts to scrap from the page
     $parts = [
@@ -33,7 +36,7 @@ Command::register($trigger.'php', function (Command $command) {
 
     // do the scraping
     foreach ($parts as $key => $selector) {
-        $parts[$key] = strip_whitespace($crawler->filter($selector)->last()->text());
+        $parts[$key] = strip_whitespace($request->filter($selector)->last()->text());
     }
 
     // return the goodness :D
@@ -48,17 +51,20 @@ Command::register($trigger.'php', function (Command $command) {
 });
 
 Command::register($trigger.'golang', function (Command $command) {
-    if (!count($command->params) || substr($command->params[0], 0, 1) == '?') {
-        return Message::privmsg($command->message->channel(), 'Usage: <function>');
+    if (empty($command->params[0]) || substr($command->params[0], 0, 1) == '?' || count($command->params) != 2) {
+        return Message::privmsg($command->message->channel(), 'Usage: <package> <function>');
     }
 
     // assign args 0 & 1 to variables
     list($packageName, $methodName) = $command->params;
+    if (!ctype_alnum((string)$packageName) || !ctype_alnum((string)$methodName)) {
+        return Message::privmsg($command->message->channel(), 'Usage: <package> <function>');
+    }
 
     //query the url in question, and make sure we get a valid response
     $url = sprintf('http://golang.org/pkg/%s/#%s', $packageName, $methodName);
-    $response = with(new GuzzleHttp\Client())->get($url);
-    if ($response->getStatusCode() != '200') {
+    $response = guzzleClient('get', $url);
+    if (($response instanceof \GuzzleHttp\Message\Response) === false) {
         return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
     }
 
