@@ -524,7 +524,7 @@ final class Message
     {
         //    Command: PRIVMSG
         // Parameters: <msgtarget> <text to be sent>
-        return static::make('PRIVMSG', $target, ":$text");
+        return static::make('PRIVMSG', Str::limit($target, 509), ":$text");
     }
 
     /**
@@ -541,7 +541,7 @@ final class Message
     {
         //    Command: NOTICE
         // Parameters: <msgtarget> <text>
-        return static::make('NOTICE', $target, ":$text");
+        return static::make('NOTICE', Str::limit($target, 509), ":$text");
     }
 
     /**
