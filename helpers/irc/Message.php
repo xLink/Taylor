@@ -2,6 +2,7 @@
 
 use Config;
 use Event;
+use Str;
 
 final class Message
 {
