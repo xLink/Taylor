@@ -179,7 +179,15 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
                         'title'  => '[ Imgur - '.$e->getMessage().' ]',
                     ];
                     return;
+                } catch (GuzzleHttp\Exception\ServerException $e) {
+                    return;
+                } catch (Exception $e) {
+                    return;
                 }
+            } catch (GuzzleHttp\Exception\ServerException $e) {
+                return;
+            } catch (Exception $e) {
+                return;
             }
         break;
 
@@ -206,6 +214,10 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
                 'mode'   => 'imgur',
                 'title'  => '[ Imgur - '.$e->getMessage().' ]',
             ];
+            return;
+        } catch (GuzzleHttp\Exception\ServerException $e) {
+            return;
+        } catch (Exception $e) {
             return;
         }
     }
