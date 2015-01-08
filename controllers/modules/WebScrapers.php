@@ -319,6 +319,8 @@ Command::register($trigger.'calc', function (Command $command) {
             $text = $result->text();
         } catch (InvalidArgumentException $e) {
             continue;
+        } catch (ErrorException $e) {
+            continue;
         }
 
         // process it and pass results back to $return

@@ -171,9 +171,13 @@ function goutteRequest(Goutte\Client $client, $url, $method = 'get')
 
     try {
         $request = $client->request(strtoupper($method), $url);
+    } catch (GuzzleHttp\Exception\ClientException $e) {
+        return -1;
     } catch (GuzzleHttp\Exception\RequestException $e) {
         return -1;
     } catch (InvalidArgumentException $e) {
+        return -1;
+    } catch (ErrorException $e) {
         return -1;
     } catch (Exception $e) {
         return -1;
@@ -204,6 +208,8 @@ function guzzleClient($method, $url, $data = [])
         $response = with(new GuzzleHttp\Client())->$method($url, $data);
     } catch (\GuzzleHttp\Exception\ClientException $e) {
         return -1;
+    } catch (ErrorException $e) {
+        return -0;
     } catch (Exception $e) {
         return -0;
     }
