@@ -2,6 +2,7 @@
 
 use Config;
 use Event;
+use Str;
 
 final class Message
 {
@@ -213,7 +214,7 @@ final class Message
      */
     public function send(Socket $socket)
     {
-        $socket->write($this->raw."\r\n");
+        $socket->write(Str::limit($this->raw, 509)."\r\n");
         Client::log($this, true);
     }
 
