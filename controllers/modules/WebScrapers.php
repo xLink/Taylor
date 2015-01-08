@@ -308,20 +308,20 @@ Command::register($trigger.'calc', function (Command $command) {
 
     // setup some sane defaults to check for
     $return = [];
-    $results = [
-        '0' => $request->filterXPath('//pod[@id="Result"]/subpod'),
-        '1' => $request->filterXPath('//pod/subpod'),
-    ];
+    try {
+        $results = [
+            '0' => $request->filterXPath('//pod[@id="Result"]/subpod'),
+            '1' => $request->filterXPath('//pod/subpod'),
+        ];
+    } catch (InvalidArgumentException $e) {
+        return Message::privmsg($command->message->channel(), 'Error: Results not found.');
+    } catch (ErrorException $e) {
+        return Message::privmsg($command->message->channel(), 'Error: Results not found.');
+    }
 
     foreach ($results as $key => $result) {
         // if we get a InvalidArgumentException, this one failed, continue over it
-        try {
             $text = $result->text();
-        } catch (InvalidArgumentException $e) {
-            continue;
-        } catch (ErrorException $e) {
-            continue;
-        }
 
         // process it and pass results back to $return
         $text = strip_whitespace($text);
