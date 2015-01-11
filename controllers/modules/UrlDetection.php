@@ -308,7 +308,6 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
     return false;
 }, 10);
 
-
 // spotify links
 Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
     if (strpos($url, 'spotify.com/') === false && strpos($url, 'spotify:') === false) {
@@ -321,14 +320,12 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
         'timeout'  => 2,
     ]);
 
-    try {
-        $request = $client->get(sprintf('https://api.spotify.com/v1/tracks/%s', $id));
-    } catch (\GuzzleHttp\Exception\ServerException $e) {
-        return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
+    $request = guzzleClient('get', sprintf('https://api.spotify.com/v1/tracks/%s', $id));
+    if (!is_object($request)) {
+        return;
     }
 
     $json = $request->json();
-
     $return = sprintf(
         '%s (Artist: %s, Album: %s, Explicit: %s, Length: %s)',
         array_get($json, 'name'),
