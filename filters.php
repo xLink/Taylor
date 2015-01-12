@@ -208,14 +208,16 @@ function guzzleClient($method, $url, $data = [])
         $response = with(new GuzzleHttp\Client())->$method($url, $data);
     } catch (\GuzzleHttp\Exception\ClientException $e) {
         return -1;
+    } catch (\GuzzleHttp\Exception\ServerException $e) {
+        return -2;
     } catch (ErrorException $e) {
-        return -0;
+        return -3;
     } catch (Exception $e) {
-        return -0;
+        return -4;
     }
 
     if ($response->getStatusCode() != '200') {
-        return -2;
+        return -5;
     }
 
     return $response;

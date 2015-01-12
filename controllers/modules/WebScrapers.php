@@ -343,3 +343,42 @@ Command::register($trigger.'calc', function (Command $command) {
         return $return[0];
     }
 });
+
+Command::register($trigger.'yt', function (Command $command) {
+    $url = 'https://www.googleapis.com/youtube/v3/search?' . http_build_query([
+        'part'          => 'snippet',
+        'q'             => $command->text,
+        'key'           => Config::get('taylor::api.google.api-key'),
+        'userIp'        => '192.168.0.1',
+    ]);
+
+    // grab the request
+    $request = guzzleClient('get', $url);
+    if (!is_object($request)) {
+        return Message::privmsg($command->message->channel(), 'Could not query server. Please try again.');
+    }
+
+    // make sure we got something
+    $results = $request->json();
+    if (array_get($results, 'kind') != 'youtube#searchListResponse') {
+        return Message::privmsg($command->message->channel(), 'Could not query server. Please try again.');
+    }
+
+    // make sure some results
+    if (!count(array_get($results, 'items'))) {
+        return Message::privmsg($command->message->channel(), 'No results found.');
+    }
+
+    // get the first result
+    $first = array_get($results, 'items.0');
+
+    // spawn a url
+    $url = 'http://youtu.be/'.array_get($first, 'id.videoId');
+
+    // trigger a url detection for that url
+    $msgSet = [];
+    Event::fire('taylor::privmsg: urlDetection', [$url, &$msgSet]);
+
+    $msg = substr($msgSet['title'], 0, -1). '| '. $url.' ]';
+    return Message::privmsg($command->message->channel(), color($msg));
+});
