@@ -345,6 +345,10 @@ Command::register($trigger.'calc', function (Command $command) {
 });
 
 Command::register($trigger.'yt', function (Command $command) {
+    if (empty($command->params[0]) || substr($command->params[0], 0, 1) == '?') {
+        return Message::privmsg($command->message->channel(), 'Usage: <search query>');
+    }
+
     $url = 'https://www.googleapis.com/youtube/v3/search?' . http_build_query([
         'part'          => 'snippet',
         'q'             => $command->text,
