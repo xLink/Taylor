@@ -352,8 +352,7 @@ Command::register($trigger.'yt', function (Command $command) {
     $url = 'https://www.googleapis.com/youtube/v3/search?' . http_build_query([
         'part'          => 'snippet',
         'q'             => $command->text,
-        'key'           => Config::get('taylor::api.google.api-key'),
-        'userIp'        => '192.168.0.1',
+        'key'           => Config::get('taylor::api.google.api-key')
     ]);
 
     // grab the request
