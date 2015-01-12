@@ -365,7 +365,7 @@ Command::register($trigger.'yt', function (Command $command) {
     // make sure we got something
     $results = $request->json();
     if (array_get($results, 'kind') != 'youtube#searchListResponse') {
-        return Message::privmsg($command->message->channel(), 'Could not query server. Please try again.');
+        return Message::privmsg($command->message->channel(), 'Could not get search results. Please try again.');
     }
 
     // make sure some results
