@@ -9,7 +9,7 @@ use Symfony\Component\DomCrawler\Crawler;
 $trigger = \Config::get('taylor::bot.command_trigger', '>');
 
 Command::register($trigger.'xkcd', function (Command $command) {
-    if (empty($command->params[0]) || substr($command->params[0], 0, 1) == '?') {
+    if (substr($command->params[0], 0, 1) == '?') {
         return Message::privmsg($command->message->channel(), 'Usage: <comic_id=random>');
     }
     $comic_id = $command->params[0];
@@ -47,9 +47,10 @@ Command::register($trigger.'xkcd', function (Command $command) {
 });
 
 Command::register($trigger.'cyaness', function (Command $command) {
-    if (empty($command->params[0]) || substr($command->params[0], 0, 1) == '?') {
+    if (substr($command->params[0], 0, 1) == '?') {
         return Message::privmsg($command->message->channel(), 'Usage: <comic_id=random>');
     }
+
     $comic_id = $command->params[0];
     if ($comic_id == 0 || !ctype_digit((string)$comic_id)) {
         $comic_id = 'random';
