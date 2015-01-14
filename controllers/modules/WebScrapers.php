@@ -89,19 +89,23 @@ Command::register($trigger.'weather', function (Command $command) {
 });
 
 Command::register($trigger.'w', function (Command $command) {
+    if (substr($command->params[0], 0, 1) == '?') {
+        return Message::privmsg($command->message->channel(), 'Usage: <location>');
+    }
+
     $text = null;
 
     // make sure we have something to go off
     if (!strlen($command->text)) {
 
         $client = new GuzzleHttp\Client([
-            'base_url' => 'https://www.darchoods.net/api/qdb/',
+            'base_url' => 'https://www.darchoods.net/api/irc/',
             'defaults' => ['headers' => ['X-Auth-Token' => Config::get('taylor::api.darchoods')]],
             'timeout'  => 2,
         ]);
 
         try {
-            $request = $client->post('https://www.darchoods.net/api/irc/user/view', ['body' => [
+            $request = $client->post('user/view', ['body' => [
                 'username' => $command->sender->nick
             ]]);
         } catch (\GuzzleHttp\Exception\ServerException $e) {
