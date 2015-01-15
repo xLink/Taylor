@@ -13,10 +13,10 @@ class Socket
      * @param integer $port     [description]
      * @param [type]  $timeout  [description]
      */
-    public function __construct($hostname, $port = 6697, $timeout = null)
+    public function __construct($config)
     {
-        $this->config = compact('hostname', 'port');
-        $this->config['timeout'] = ($timeout === null ? ini_get('default_socket_timeout') : $timeout);
+        $this->config = array_get($config, 'server');
+        $this->config['timeout'] = (!isset($this->config['timeout']) || $this->config['timeout'] === null ? ini_get('default_socket_timeout') : $timeout);
 
         $this->connect();
     }
@@ -29,9 +29,9 @@ class Socket
      * @param int $timeout The connection timeout, in seconds.
      * @return Socket
      */
-    public static function make($hostname, $port, $timeout = null)
+    public static function make($config)
     {
-        return new static($hostname, $port, $timeout);
+        return new static($config);
     }
 
     /**
@@ -42,7 +42,11 @@ class Socket
     public function connect()
     {
         if (is_null($this->socket)) {
-            $this->socket = fsockopen($this->config['hostname'], $this->config['port'], $this->config['timeout']);
+            if ($this->config['ssl'] === true) {
+                $this->socket = stream_socket_client('ssl://'.$this->config['hostname'].':'.$this->config['port'], $errno, $errstr, $this->config['timeout']);
+            } else {
+                $this->socket = fsockopen($this->config['hostname'], $this->config['port'], $this->config['timeout']);
+            }
         }
         return $this;
     }

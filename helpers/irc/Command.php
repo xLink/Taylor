@@ -60,14 +60,12 @@ final class Command
      * @param  string $name
      * @param  Closure $closure
      */
-    public static function register($name, $closure)
+    public static function register($name, $closure, $priority = 999)
     {
-        Event::listen('taylor::command: '.strtolower($name), $closure);
+        Event::listen('taylor::command: '.strtolower($name), $closure, $priority);
 
         // register the command into the cache
-        $functions = Cache::get('taylor.functions', []);
-        $functions[] = $name;
-        Cache::forever('taylor.functions', array_unique($functions));
+        addToCache('taylor.functions', $name);
     }
 
     /**
@@ -75,8 +73,14 @@ final class Command
      */
     public function run()
     {
-        $response = Event::fire('taylor::command: '.strtolower($this->name), array($this));
 
+        if (isset($this->sender)) {
+            if (testForBot($this->sender->nick)) {
+                return [];
+            }
+        }
+
+        $response = Event::fire('taylor::command: '.strtolower($this->name), array($this));
         if (empty($response)) {
             return [];
         }

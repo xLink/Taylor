@@ -145,9 +145,9 @@ final class Message
      * @param  string $name
      * @param  Closure $closure
      */
-    public static function listen($name, $closure)
+    public static function listen($name, $closure, $priority = 999)
     {
-        Event::listen('taylor::message: '.$name, $closure);
+        Event::listen('taylor::message: '.$name, $closure, $priority);
     }
 
     /**

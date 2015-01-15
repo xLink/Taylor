@@ -37,7 +37,7 @@ class Client extends BaseHelper
             echo 'Loaded Bot Config'.PHP_EOL;
         }
 
-        $this->socket = new Irc\Socket(array_get($this->config, 'server.host'), array_get($this->config, 'server.port', 6667));
+        $this->socket = new Irc\Socket($this->config);
         $this->identifyMe();
         $this->setupCommands();
 
