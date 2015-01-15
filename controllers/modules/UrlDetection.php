@@ -49,7 +49,6 @@ Message::listen('privmsg', function ($message) {
         Event::fire('taylor::privmsg: urlDetection', array($url, &$msgSet));
 
         if (count($msgSet)) {
-            var_dump($msgSet);
             $msgs[] = Message::privmsg($message->params[0], color($msgSet['title']));
         }
     }
@@ -135,7 +134,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
         'title'  => 'Image Found: '.$return,
     ];
     return false;
-}, 5);
+});
 
 
 // detect imgur links
@@ -272,7 +271,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
         'title'  => '[ Imgur - '.$return.' ]',
     ];
     return false;
-}, 6);
+});
 
 // detect youtube links
 Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
@@ -306,7 +305,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
         'title'  => '[ You'.color('Tube', 'red').' - '.implode(' | ', [$title, 'Length: '.secs_to_h($length)]).' ]',
     ];
     return false;
-}, 10);
+});
 
 // spotify links
 Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
@@ -344,7 +343,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
         'title'  => '[ Spotify - '.$return.' ]',
     ];
     return false;
-}, 10);
+});
 
 // detect imdb links
 Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
@@ -387,7 +386,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
         'title'  => '[ IMDB - '.$return.' ]',
     ];
     return false;
-}, 10);
+});
 
 // detect github links
 Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
@@ -514,7 +513,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
         'title'  => $return,
     ];
     return false;
-}, 10);
+});
 
 
 // normal links
@@ -546,4 +545,4 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
     }
 
     return;
-}, 10);
+});

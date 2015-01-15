@@ -10,22 +10,7 @@ Command::register($trigger.'setWeather', function (Command $command) {
         return Message::privmsg($command->message->channel(), 'Usage: <location>');
     }
 
-    // get the account name for the user that did this command
-    $client = new GuzzleHttp\Client([
-        'base_url' => 'https://www.darchoods.net/api/irc/',
-        'defaults' => ['headers' => ['X-Auth-Token' => Config::get('taylor::api.darchoods')]],
-        'timeout'  => 2,
-    ]);
-
-    try {
-        $request = $client->post('user/view', ['body' => [
-            'username' => $command->sender->nick
-        ]]);
-    } catch (\GuzzleHttp\Exception\ServerException $e) {
-        return Message::privmsg($command->message->channel(), color('Error: IRC API appears to be down, Try again later.'));
-    }
-
-    $user = $request->json();
+    $user = getUserData($command->sender->nick);
     if (!count($user) || ($accountName = array_get($user, 'data.user.account', null)) === null) {
         return Message::privmsg(
             $command->message->channel(),
