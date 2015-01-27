@@ -13,6 +13,10 @@ $client = new GuzzleHttp\Client([
 ]);
 
 Command::register($trigger.'quote', function (Command $command) use ($client) {
+    if (substr($command->params[0], 0, 1) == '?') {
+        return Message::privmsg($command->message->channel(), 'Usage: <id number> or null(random quote)');
+    }
+
     $quote_id = $command->params[0];
     $url = 'search/byId';
     if ($quote_id == 0 || !ctype_digit((string)$quote_id)) {
@@ -46,6 +50,9 @@ Command::register($trigger.'quote', function (Command $command) use ($client) {
 });
 
 Command::register($trigger.'addquote', function (Command $command) use ($client) {
+    if (empty($command->params[0]) || substr($command->params[0], 0, 1) == '?') {
+        return Message::privmsg($command->message->channel(), 'Usage: <msg to quote>');
+    }
 
     try {
         $request = $client->post('create', ['body' => [
