@@ -292,13 +292,44 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
         return;
     }
 
+    // get title
     $url = 'http://www.youtube.com/watch?v='.$matches[1];
     $request = goutteRequest(goutteClient(), $url, 'get');
     if (($request instanceof Symfony\Component\DomCrawler\Crawler) === false) {
         return;
     }
-    $title  = getNode($request, '#eow-title', null);
-    $length = inBetween('"length_seconds": "', '"', $request->html()) ?: 0;
+    $title = getNode($request, '#eow-title', null);
+
+    // get length
+    $url = 'https://www.googleapis.com/youtube/v3/videos?' . http_build_query([
+        'part' => 'contentDetails',
+        'id'   => $matches[1],
+        'key'  => Config::get('taylor::api.google.api-key')
+    ]);
+
+    // grab the request
+    $request = guzzleClient('get', $url);
+    if (!is_object($request)) {
+        return;
+    }
+
+    // make sure we got something
+    $results = $request->json();
+    if (array_get($results, 'kind') != 'youtube#videoListResponse') {
+        return;
+    }
+
+    if (!count(array_get($results, 'items'))) {
+        return;
+    }
+
+    $video = array_get($results, 'items.0');
+    if (empty($video) || array_get($video, 'kind') != 'youtube#video') {
+        return;
+    }
+
+    $length = array_get($video, 'contentDetails.duration', 0);
+    $length = (new DateTime('@0'))->add(new DateInterval($length))->format('U');
 
     $msgSet = [
         'mode'   => 'youtube',
