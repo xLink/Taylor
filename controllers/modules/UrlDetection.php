@@ -438,7 +438,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
             $issue = $request->filter('.js-issue-title')->count();
             if ($issue) {
                 $return = strip_whitespace(sprintf(
-                    '%s%s: %s by %s (State: %s, Comments: %d)',
+                    '%s%s: %s by %s (State: %s, Comments: %s)',
                     getNode($request, 'h1.entry-title.public', null),
                     getNode($request, 'h1.gh-header-title span.gh-header-number', 0),
                     getNode($request, 'h1.gh-header-title span.js-issue-title', null),
@@ -452,7 +452,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
         // https://github.com/<username>/<repo>/pull/<pull_id>
         case (strpos($url, '/pull/') !== false):
             $return = strip_whitespace(sprintf(
-                '%s%s: %s (State: %s, Comments: %d, Commits: %d, Files Changed: %d)',
+                '%s%s: %s (State: %s, Comments: %s, Commits: %s, Files Changed: %s)',
                 getNode($request, 'h1.entry-title.public', null),
                 getNode($request, 'h1.gh-header-title span.gh-header-number', 0),
                 getNode($request, 'h1.gh-header-title span.js-issue-title', null),
@@ -498,7 +498,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
         // https://github.com/<username>/<repo>/
         case (preg_match('/github.com\/.*\/.*$/U', $url)):
             $return = strip_whitespace(sprintf(
-                '%s: (Starred: %d, Repo Forks: %d, Commits: %d, Contributors: %d)',
+                '%s: (Starred: %s, Repo Forks: %s, Commits: %s, Contributors: %s)',
                 getNode($request, 'h1.entry-title.public', null),
                 getNode($request, 'ul.pagehead-actions li:nth-child(2) a.social-count', 0),
                 getNode($request, 'ul.pagehead-actions li:nth-child(2) a.social-count', 0),
@@ -514,7 +514,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
             $orgTest = $request->filter('h1.org-name')->count();
             if ($orgTest) {
                 $return = sprintf(
-                    'Github Organisation: %s / People: %d',
+                    'Github Organisation: %s / People: %s',
                     getNode($request, 'span.js-username', null),
                     getNode($request, 'span.org-stats', 0)
                 );
@@ -522,7 +522,7 @@ Event::listen('taylor::privmsg: urlDetection', function ($url, &$msgSet) {
             //else profile!
             } else {
                 $return = sprintf(
-                    'Github User: %s (Followers: %d, Starred: %d, Following: %d, Year of Contributions: %d, Joined: %s)',
+                    'Github User: %s (Followers: %s, Starred: %s, Following: %s, Year of Contributions: %s, Joined: %s)',
                     getNode($request, '.js-username .vcard-username', null),
                     getNode($request, '.vcard-stats a:nth-child(1) .vcard-stat-count', 0),
                     getNode($request, '.vcard-stats a:nth-child(2) .vcard-stat-count', 0),
