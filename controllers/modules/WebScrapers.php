@@ -241,40 +241,7 @@ Command::register($trigger.'curr', function (Command $command) {
         return Message::privmsg($command->message->channel(), 'Usage: <value> <currency_from> <currency_to>, e.g. 1 USD EUR');
     }
 
-    $params = [
-        'q'     => str_replace([','], '', $command->params[0]),
-        'from'  => $command->params[1],
-        'to'    => $command->params[2],
-    ];
-    // grab the api
-    $url = sprintf('http://rate-exchange.appspot.com/currency?%s', http_build_query($params));
-
-    // make sure we got something
-    try {
-        $request = with(new GuzzleHttp\Client())->get($url);
-    } catch (\GuzzleHttp\Exception\ServerException $e) {
-        return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
-    }
-
-    if ($request->getStatusCode() != '200') {
-        return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
-    }
-
-    $data = json_decode($request->getBody(true), true);
-    if (!count($data)) {
-        return Message::privmsg($command->message->channel(), color('Error: Could not query the server.'));
-    }
-
-    if (isset($data['err'])) {
-        return Message::privmsg($command->message->channel(), color('Error: Could not process input. Usage: <value> <currency_from> <currency_to>'));
-    }
-
-    if (isset($data['warning'])) {
-        return Message::privmsg($command->message->channel(), color('Error: '.$data['warning']));
-    }
-
-    // and output
-    return Message::privmsg($command->message->channel(), sprintf('%.2f %s = %.2f %s', $params['q'], $params['from'], $data['v'], strtoupper($data['to'])));
+    return run_cmd($command->message->channel(), '>calc', $command->params);
 });
 
 Command::register($trigger.'calc', function (Command $command) {
