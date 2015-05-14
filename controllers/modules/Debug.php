@@ -45,6 +45,12 @@ Message::listen('privmsg', function (Message $message) {
     }
 });
 
+Message::listen('privmsg', function (Message $message) {
+    if ($message->sender->nick == 'Solaire' && strpos($message->params[1], '\o/') !== false) {
+        return Message::privmsg($message->params[0], color('\o/ Praise the sun!'));
+    }
+});
+
 if (false) {
     Message::listen('*', function (Message $message) {
         message_debug($message);
